@@ -1,0 +1,8 @@
+<% if sqrl_authenticated? %>
+  <p id="status">Logged in as <code><%= sqrl.idk_b64 %></code>.</p>
+  <p><a href="/protected">Protected page</a></p>
+  <form method="post" action="/logout"><button>Log out</button></form>
+<% else %>
+  <p id="status">Not logged in.</p>
+  <p><a href="/login">Sign in with SQRL</a></p>
+<% end %>
