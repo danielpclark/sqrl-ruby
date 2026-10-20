@@ -32,6 +32,7 @@ independent unit of work.
 14. [Appendix A – Protocol cheat sheet](#appendix-a--protocol-cheat-sheet)
 15. [Appendix B – Test vectors and flows to port](#appendix-b--test-vectors-and-flows-to-port)
 16. [Appendix C – Rust to Ruby module map](#appendix-c--rust-to-ruby-module-map)
+17. [Phase 2 – depth, hardening and reach](#15-phase-2--depth-hardening-and-reach)
 
 ---
 
@@ -830,6 +831,11 @@ Each milestone is intended to be one or a few pull requests and ends in a green 
 Rough ordering rationale: M1–M3 produce a testable client before any framework code
 exists, so every later milestone starts with its test driver already in hand.
 
+**Status (2026-10-20):** M0 through M8 are delivered on the branch. Counts at the end of
+phase 1: 351 gem examples, 165 live integration examples across the five example apps,
+4 interop examples against the Rust reference server, all green. What phase 1 left out, and
+the order it is picked up in, is in [§15 Phase 2](#15-phase-2--depth-hardening-and-reach).
+
 ---
 
 ## 11. Security requirements checklist
@@ -984,3 +990,55 @@ reference the same values.
 | `server.rs` | `server.rb`, `server/*.rb` | state behind store interfaces; CPS token added |
 | `../sqrl-test-server` | `examples/rack-app` | same routes, plus the status/callback contract from §5.1 |
 | `tests/vectors.rs`, `tests/flows.rs` | `spec/vectors_spec.rb`, `spec/flows_spec.rb` | one-to-one |
+
+---
+
+## 15. Phase 2 – depth, hardening and reach
+
+Phase 1 built every layer once and proved it end to end. Phase 2 takes each layer to the
+depth a production deployment and a public gem release need. Items are grouped into four
+milestones; within a milestone they are independent and can run in parallel.
+
+### P1 – Protocol features surfaced to applications
+
+SQRL carries account-policy signals that phase 1 stored but did not act on.
+
+| Item | What | Done when |
+| --- | --- | --- |
+| P1.1 `sqrlonly` / `hardlock` enforcement | A user whose identity requested `sqrlonly` must not be able to log in with a password; `hardlock` must block non-SQRL account recovery. Devise: a model hook that fails `database_authenticatable` and `recoverable` for such users with a clear message. Rails 8 adapter and Rack facade: `sqrl_only?(user)` / `hard_locked?(user)` helpers plus guidance for the generated `SessionsController` and `PasswordsController`. | Devise and Rails example apps refuse password login and password reset for a `sqrlonly` / `hardlock` identity; specs in `devise-sqrl` and `sqrl-rails`. |
+| P1.2 Identity management | Users can see the SQRL identities linked to their account, unlink one, and see when it last logged in. Rails engine controller and views (plain ERB), Devise variant under the mapping, model methods already present. `last_login_at` and `logins` kept current on every successful `ident`/`enable`. | Request specs; the Rails and Devise examples expose the page. |
+| P1.3 `ask` and `sin` in every example | Each example honours `SQRL_ASK=1` / `SQRL_SIN=1` (as the Rust test server does) so the conformance cases for `ask`/`btn` and `sin`/`ins` run live. The integration harness boots every app a second time with both enabled. | The 10 pending `ask`/`sin` integration cases pass. |
+| P1.4 Client identity operations | `sqrl-client identity export` (S4 text and textual), `identity rekey`, `identity change-password`, `--alt-id` on every command, `--previous` listing. | CLI specs; README. |
+
+### P2 – Production readiness
+
+| Item | What | Done when |
+| --- | --- | --- |
+| P2.1 Host handling | Explicit `host` strongly defaulted: a warning when derived from the request, an optional `allowed_hosts` list, and a bounded per-host handler cache (security review item 7). | Specs for the cap and the allowlist; docs updated. |
+| P2.2 Pruning and rate-limit hooks | Opportunistic `prune!` every N handled requests (configurable), `before_issue` / `before_handle` hooks on the config for rate limiting, Rails `rate_limit` on the cli and login-page controllers when available (review item 8). | Specs; a Rack::Attack recipe in the docs. |
+| P2.3 Stores for non-Rails apps | A Redis-backed `SQRL::Server::Redis` store set (optional `redis` gem, atomic `GETDEL` / Lua for the compare-and-set) and an `ActiveSupport::Cache` set for Rails apps that prefer cache stores, each with the store conformance spec shared with the memory and ActiveRecord sets. | A shared "store contract" spec passes for every implementation. |
+| P2.4 Remaining review items | `qrl://` only for real loopback IPv6 literals, escaped `extra_attrs` keys, broader rescue-to-failure in the Rails callback, constant-time comparisons everywhere a secret is compared. | Each has a spec. |
+| P2.5 Release engineering | `release.yml` that builds and pushes all six gems from a tag, `changelog_uri` and friends in every gemspec, a lenient shared RuboCop configuration with a CI lint job, `bundler-audit`, YARD build check. | A dry-run `gem build` of all six succeeds in CI; lint is green. |
+| P2.6 Version matrix | Appraisal-style gemfiles for Rails 7.1 / 7.2 / 8.0 and Devise 4.9, run in CI for `sqrl-rails` and `devise-sqrl`. | Matrix green. |
+
+### P3 – Reach
+
+| Item | What | Done when |
+| --- | --- | --- |
+| P3.1 Roda | A `plugin :sqrl` shipped inside `sqrl-rack` (`roda/plugins/sqrl`) wrapping the middleware with Roda-style helpers, a `roda-app` example, and its row in the integration harness. | The Roda example passes the live suite. |
+| P3.2 Docs | `docs/security.md` (threat model, store requirements, deployment checklist) and `docs/protocol.md` (the Ruby-facing protocol notes grown from Appendix A), an "other Rack frameworks" section. | Written and linked from the README. |
+| P3.3 Browser-side polish | `sqrl.js` emits `sqrl:authenticated` / `sqrl:expired` DOM events, supports a `data-sqrl-poll` backoff, and exposes `SQRL.refresh()` to fetch a fresh nut when one expires without a page reload (needs a small `GET /sqrl/refresh` endpoint). | Cuprite specs. |
+| P3.4 Reverse interop | The Rust extension's Node smoke client against the Sinatra example on a scheduled CI job. | Job green on schedule. |
+
+### P4 – Specification work (kept separate on purpose)
+
+| Item | What |
+| --- | --- |
+| P4.1 API authentication | Write `docs/api-auth.md`: a proposal for SQRL-authenticated API calls (challenge issuance, request signing header, replay protection, token exchange), review it against the SQRL community's prior discussions, then prototype as a new transport in `sqrl-client` and a middleware in `sqrl-rack`. No implementation before the proposal is agreed. |
+| P4.2 GRC SSP API compatibility | Study GRC's SSP API server endpoints (`/nut.sqrl`, `/png.sqrl`, `/pag.sqrl`, `/cps.sqrl`, …) and decide whether a compatibility layer belongs in `sqrl-rack`. |
+| P4.3 ActionCable / SSE push | Replace polling with a push channel for non-CPS logins where the host app has ActionCable or wants Server-Sent Events. |
+
+### Order of work
+
+P1 and P2 run together (they touch different files); P3.1 and P3.2 can start at once; P3.3
+after P2.2 (it adds an endpoint); P3.4 and P4 after everything else is green.
