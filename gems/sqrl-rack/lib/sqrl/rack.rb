@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "rack"
-require "sqrl"
+require "sqrl/core"
 
 module SQRL
   # SQRL login for Rack applications: the framework-neutral {Endpoint}, the {Middleware}

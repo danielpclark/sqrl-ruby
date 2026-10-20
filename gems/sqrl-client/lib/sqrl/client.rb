@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "sqrl"
+require "sqrl/core"
 require_relative "client/errors"
 require_relative "client/identity"
 require_relative "client/transport"

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "rails"
-require "sqrl"
+require "sqrl/core"
 require "sqrl/rack"
 
 module SQRL
