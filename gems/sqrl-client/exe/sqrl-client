@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "sqrl/client"
+require "sqrl/client/cli"
+
+exit SQRL::Client::CLI.run(ARGV)
