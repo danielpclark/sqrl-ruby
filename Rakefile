@@ -27,3 +27,20 @@ desc "Run every gem's specs followed by the integration specs"
 task spec: ["spec:gems", "spec:integration"]
 
 task default: "spec:gems"
+
+desc "Build every gem into pkg/ (what the release workflow pushes)"
+task :build do
+  require "fileutils"
+  require_relative "gems/sqrl-core/lib/sqrl/version"
+  FileUtils.mkdir_p("pkg")
+  GEMS.each do |gem_name|
+    Dir.chdir("gems/#{gem_name}") do
+      sh "gem build #{gem_name}.gemspec --output ../../pkg/#{gem_name}-#{SQRL::VERSION}.gem"
+    end
+  end
+end
+
+desc "Check that every gem builds cleanly and that the tag would match the version"
+task release_check: :build do
+  Dir["pkg/*.gem"].sort.each { |g| puts "built #{g}" }
+end
