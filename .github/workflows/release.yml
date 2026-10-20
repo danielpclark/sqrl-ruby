@@ -1,0 +1,44 @@
+name: Release
+
+# Tag the commit with the version (for example `v0.1.0`, matching SQRL::VERSION) to build
+# all six gems and push them to rubygems.org. Requires the RUBYGEMS_API_KEY secret.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - name: Check the tag matches SQRL::VERSION
+        run: |
+          version=$(ruby -r ./gems/sqrl-core/lib/sqrl/version.rb -e 'print SQRL::VERSION')
+          test "v$version" = "${GITHUB_REF_NAME}" || { echo "tag ${GITHUB_REF_NAME} != v$version"; exit 1; }
+      - name: Gem specs
+        run: bundle exec rake spec:gems
+      - name: Build gems
+        run: |
+          mkdir -p pkg
+          for gem in sqrl-core sqrl-rack omniauth-sqrl sqrl-rails devise-sqrl sqrl-client; do
+            (cd "gems/$gem" && gem build "$gem.gemspec" --output "../../pkg/$gem-${GITHUB_REF_NAME#v}.gem")
+          done
+          ls -l pkg
+      - name: Push to rubygems.org (dependency order)
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          for gem in sqrl-core sqrl-rack omniauth-sqrl sqrl-rails devise-sqrl sqrl-client; do
+            gem push "pkg/$gem-${GITHUB_REF_NAME#v}.gem"
+          done
+      - name: GitHub release with the built gems
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pkg/*.gem
+          generate_release_notes: true

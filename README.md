@@ -19,7 +19,9 @@ namespace and maps to the require path (`sqrl-rack` is `sqrl/rack`, `SQRL::Rack`
 auto-require resolves each of them that way, so a plain `gem "..."` line is enough.
 
 All six gems share one version and live in this repository. The implementation plan is in
-[docs/PLAN.md](docs/PLAN.md); per-framework guides are in [docs/integrations](docs/integrations).
+[docs/PLAN.md](docs/PLAN.md); per-framework guides are in [docs/integrations](docs/integrations);
+the threat model and deployment checklist are in [docs/security.md](docs/security.md) and the
+protocol summary in [docs/protocol.md](docs/protocol.md).
 
 ## What is implemented
 
