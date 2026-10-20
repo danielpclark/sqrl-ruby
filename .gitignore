@@ -15,3 +15,6 @@
 /pkg/
 /doc/
 /.yardoc/
+/examples/*/config/master.key
+/examples/*/config/credentials.yml.enc
+/examples/*/config/credentials/
