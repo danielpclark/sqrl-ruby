@@ -15,13 +15,26 @@
 #   features         conformance feature overrides (see Conformance::Runner::DEFAULT_FEATURES)
 #   ready            file (relative to the example dir) that only exists once the example is built
 #   ready_pattern    optional regex the +ready+ file must match
+#   ask_sin_files    files (relative to the example dir) one of which mentions SQRL_ASK once the
+#                    example honours SQRL_ASK=1 / SQRL_SIN=1; until then the ask/sin pass is skipped
 require "cgi"
 
 module ExampleDescriptors
+  # Environment that turns on the ask= question and the sin= challenge in every example.
+  ASK_SIN_ENV = { "SQRL_ASK" => "1", "SQRL_SIN" => "1" }.freeze
+
   Descriptor = Struct.new(:name, :login_path, :login_page, :browser_login, :protected_path, :home_path,
                           :logged_in, :logout, :cancel, :features, :ready, :ready_pattern, :anonymous_status,
-                          keyword_init: true) do
+                          :ask_sin_files, keyword_init: true) do
     def login_url(app) = app.url(login_path)
+
+    # Whether the example reads SQRL_ASK (the files are checked at spec load time).
+    def ask_sin_supported?(dir)
+      Array(ask_sin_files).any? do |file|
+        path = File.join(dir, file)
+        File.exist?(path) && File.read(path).include?("SQRL_ASK")
+      end
+    end
 
     # HTTP status the protected page answers to a browser that has not logged in:
     # 403 for the Rack-style examples, 302 (redirect to the sign-in page) for Rails and Devise.
@@ -34,12 +47,17 @@ module ExampleDescriptors
     "rack-app" => Descriptor.new(
       name: "rack-app", login_path: "/login", protected_path: "/protected", home_path: "/",
       logged_in: ->(body) { body.match?(IDK_MARKER) }, logout: { text: "Log out" }, cancel: true,
-      features: {}, ready: "config.ru"
+      features: {}, ready: "config.ru", ask_sin_files: %w[config.ru]
     ),
     "sinatra-app" => Descriptor.new(
       name: "sinatra-app", login_path: "/login", protected_path: "/protected", home_path: "/",
       logged_in: ->(body) { body.match?(IDK_MARKER) }, logout: { text: "Log out" }, cancel: true,
-      features: {}, ready: "config.ru"
+      features: {}, ready: "config.ru", ask_sin_files: %w[app.rb]
+    ),
+    "roda-app" => Descriptor.new(
+      name: "roda-app", login_path: "/login", protected_path: "/protected", home_path: "/",
+      logged_in: ->(body) { body.match?(IDK_MARKER) }, logout: { text: "Log out" }, cancel: false,
+      features: {}, ready: "config.ru", ask_sin_files: %w[config.ru app.rb]
     ),
     "omniauth-app" => Descriptor.new(
       name: "omniauth-app", login_path: "/auth/sqrl",
@@ -56,18 +74,19 @@ module ExampleDescriptors
       browser_login: ->(page, app) { page.visit(app.url("/")); page.click_button("Sign in with SQRL") },
       protected_path: "/protected", home_path: "/",
       logged_in: ->(body) { body.match?(/Logged in as|id="uid"/) }, logout: { text: "Log out" }, cancel: false,
-      features: {}, ready: "config.ru"
+      features: {}, ready: "config.ru", ask_sin_files: %w[app.rb]
     ),
     "rails-auth-app" => Descriptor.new(
       name: "rails-auth-app", login_path: "/session/new", protected_path: "/protected", home_path: "/",
       logged_in: ->(body) { body.match?(/<p id="status">Signed in as|id="protected"/) }, logout: { text: "Sign out" }, cancel: false,
-      features: {}, ready: "config/initializers/sqrl.rb", anonymous_status: 302
+      features: {}, ready: "config/initializers/sqrl.rb", anonymous_status: 302,
+      ask_sin_files: %w[config/initializers/sqrl.rb]
     ),
     "devise-app" => Descriptor.new(
       name: "devise-app", login_path: "/users/sign_in", protected_path: "/protected", home_path: "/",
       logged_in: ->(body) { body.match?(/<p id="status">Signed in as|id="protected"/) }, logout: { text: "Log out" },
       cancel: false, features: {}, ready: "app/models/user.rb", ready_pattern: /sqrl_authenticatable/,
-      anonymous_status: 302
+      anonymous_status: 302, ask_sin_files: %w[config/initializers/devise_sqrl.rb config/initializers/sqrl.rb]
     )
   }.freeze
 

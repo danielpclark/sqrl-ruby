@@ -26,7 +26,11 @@ module SQRL
         Commands:
           identity create   --out FILE [--password PW | --password-file F] [--pw-seconds N] [--rescue-seconds N]
           identity import   --textual FILE --rescue-code CODE --out FILE [--password PW]
-          identity show     --identity FILE [--password PW]
+          identity show     --identity FILE [--password PW] [--json]
+          identity export   --identity FILE [--password PW] --format s4-text|textual|binary [--out FILE]
+          identity rekey    --identity FILE --password PW --rescue-code CODE [--out FILE] [--rescue-seconds N]
+          identity change-password --identity FILE --password OLD --new-password NEW [--pw-seconds N] [--out FILE]
+          identity previous --identity FILE [--password PW]   list previous (superseded) identities
           login   URL       perform a SQRL login (creates the account if the site does not know you)
           query   URL       ask the site whether it knows the identity
           disable URL       disable SQRL login for the account
@@ -122,6 +126,9 @@ module SQRL
           o.on("--rescue-code CODE") { |v| opts[:rescue_code] = v }
           o.on("--pw-seconds N", Integer) { |v| opts[:pw_seconds] = v }
           o.on("--rescue-seconds N", Float) { |v| opts[:rescue_seconds] = v }
+          o.on("--new-password PW") { |v| opts[:new_password] = v }
+          o.on("--new-password-file FILE") { |v| opts[:new_password] = File.read(v).chomp }
+          o.on("--format FORMAT", %w[s4-text textual binary]) { |v| opts[:format] = v }
           o.on("--json") { opts[:json] = true }
         end
         parser.parse!(argv)
@@ -151,12 +158,89 @@ module SQRL
         when "show"
           id = load_identity(identity: opts[:identity], password: opts[:password])
           info = { fingerprint: id.fingerprint, previous_identities: id.previous_count, iuk_known: id.iuk?,
-                   file: id.path }
+                   edition: id.s4&.edition, file: id.path }
           @out.puts opts[:json] ? JSON.generate(info) : info.map { |k, v| "#{k}: #{v}" }.join("\n")
           EXIT_OK
+        when "export" then identity_export(opts)
+        when "rekey" then identity_rekey(opts)
+        when "change-password" then identity_change_password(opts)
+        when "previous" then identity_previous(opts)
         else
-          raise ArgumentError, "identity needs one of: create, import, show"
+          raise ArgumentError, "identity needs one of: create, import, show, export, rekey, change-password, previous"
         end
+      end
+
+      # The identity file in one of its interchange forms:
+      #   s4-text   the SQRLDATA text form of the whole file (password + rescue blocks)
+      #   textual   the base56 "textual identity" (rescue blocks only; needs the rescue code to import)
+      #   binary    the raw sqrldata file (requires --out)
+      def identity_export(opts)
+        format = opts[:format] or raise ArgumentError, "--format s4-text|textual|binary is required"
+        id = load_identity(identity: opts[:identity], password: opts[:password])
+        raise IdentityLocked, "ephemeral identities have no file to export" unless id.s4
+
+        content =
+          case format
+          when "s4-text" then id.s4.to_text
+          when "textual" then Textual.format_for_display(Textual.encode(id.s4.rescue_blocks_to_bytes))
+          when "binary"
+            raise ArgumentError, "--out FILE is required for the binary format" unless opts[:out]
+
+            id.s4.to_bytes
+          end
+        if opts[:out]
+          File.binwrite(opts[:out], content)
+          File.chmod(0o600, opts[:out])
+          @out.puts opts[:json] ? JSON.generate(path: opts[:out], format: format, bytes: content.bytesize) : "Wrote #{format} identity to #{opts[:out]}."
+        else
+          @out.puts content
+        end
+        EXIT_OK
+      end
+
+      # A fresh Identity Unlock Key; the current one becomes the most recent previous
+      # identity, so sites re-key the account on the next login. Prints the new rescue code.
+      def identity_rekey(opts)
+        id = load_identity(identity: opts[:identity], password: opts[:password])
+        rescue_code = opts[:rescue_code] || ENV["SQRL_RESCUE_CODE"] or raise ArgumentError, "--rescue-code CODE is required to re-key"
+        password = opts[:new_password] || opts[:password] || ENV["SQRL_PASSWORD"]
+        id.rekey!(password: password, rescue_code: rescue_code, rescue_seconds: opts[:rescue_seconds])
+        id.save(opts[:out]) if opts[:out]
+        if opts[:json]
+          @out.puts JSON.generate(path: id.path, fingerprint: id.fingerprint, previous_identities: id.previous_count,
+                                  rescue_code: id.rescue_code)
+        else
+          @out.puts "Identity re-keyed and written to #{id.path} (fingerprint #{id.fingerprint}, #{id.previous_count} previous)."
+          @out.puts "New rescue code (write it down, it is shown once): #{id.rescue_code}"
+        end
+        EXIT_OK
+      end
+
+      # Re-encrypt the password block under a new password (the rescue block is untouched).
+      def identity_change_password(opts)
+        new_password = opts[:new_password] or raise ArgumentError, "--new-password PW (or --new-password-file) is required"
+        id = load_identity(identity: opts[:identity], password: opts[:password])
+        raise IdentityLocked, "ephemeral identities have no password to change" unless id.s4
+
+        settings = id.s4.settings
+        settings.pw_verify_seconds = opts[:pw_seconds] if opts[:pw_seconds]
+        id.s4.set_password(id.unlocked, new_password, settings)
+        id.save(opts[:out] || id.path)
+        @out.puts opts[:json] ? JSON.generate(path: id.path, fingerprint: id.fingerprint) : "Password changed; identity written to #{id.path}."
+        EXIT_OK
+      end
+
+      # Previous (superseded) identities carried by the file, most recent first.
+      def identity_previous(opts)
+        id = load_identity(identity: opts[:identity], password: opts[:password])
+        rows = (0...id.previous_count).map { |i| { index: i, fingerprint: id.previous_identity(i).fingerprint } }
+        if opts[:json]
+          @out.puts JSON.generate(current: id.fingerprint, previous: rows)
+        else
+          @out.puts "current: #{id.fingerprint}"
+          @out.puts(rows.empty? ? "previous: none" : rows.map { |r| "previous[#{r[:index]}]: #{r[:fingerprint]}" }.join("\n"))
+        end
+        EXIT_OK
       end
 
       # ---- login / query / disable / enable / remove ---------------------------------------

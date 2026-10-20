@@ -33,6 +33,11 @@ class ExampleApp
       command: %w[bundle exec rackup --host 127.0.0.1 --port %PORT% config.ru],
       ready_path: "/"
     ),
+    "roda-app" => Definition.new(
+      name: "roda-app",
+      command: %w[bundle exec rackup --host 127.0.0.1 --port %PORT% config.ru],
+      ready_path: "/"
+    ),
     "rails-auth-app" => Definition.new(
       name: "rails-auth-app",
       command: %w[bundle exec bin/rails server -b 127.0.0.1 -p %PORT% -e test],

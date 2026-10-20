@@ -94,6 +94,7 @@ RSpec.describe "Ruby client against the Rust reference server", :interop do
       report = runner_for(server).run
       expect(report.failed.map { |c| [c.name, c.message] }).to eq([])
       expect(report.passed.size).to be >= 15
+      expect(report.passed.map(&:name)).to include(:alt_id_is_distinct, :rekey_moves_account, :remove_then_recreate)
     ensure
       server.stop
     end

@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 # A Sinatra site with SQRL login through the Sinatra::SQRL extension.
+#
+# SQRL_HOST sets the public host placed in sqrl:// URLs; SQRL_ASK=1 poses an ask= question
+# (Allow / Deny) on every login; SQRL_SIN=1 sends a sin= secret-index challenge.
 require "bundler/setup"
 require "securerandom"
 require "sinatra/base"
@@ -20,7 +23,9 @@ class SinatraApp < Sinatra::Base
       host: ENV["SQRL_HOST"],
       after_login: "/protected",
       on_unknown_identity: (ENV["SQRL_UNKNOWN_IDENTITY"] || :create).to_sym,
-      require_ip_match: ENV["SQRL_IGNORE_IP"].nil?
+      require_ip_match: ENV["SQRL_IGNORE_IP"].nil?,
+      ask: (SQRL::Ask.new(message: "Allow this login from the Sinatra demo?", buttons: [{ label: "Allow" }, { label: "Deny" }]) if ENV["SQRL_ASK"]),
+      sin: (ENV["SQRL_SIN"] ? "0" : nil)
 
   sqrl_on_login do |identity, env|
     env["rack.session"]["login_count"] = env["rack.session"].fetch("login_count", 0) + 1

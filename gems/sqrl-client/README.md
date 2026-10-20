@@ -75,6 +75,27 @@ The protocol runs out of band; the **browser** then visits the one-time CPS URL,
 native client would redirect the tab, so the browser's own session is the one logged in.
 `cps: false` performs `ident` only and waits for the page's poller to redirect.
 
+## Command line
+
+```
+sqrl-client identity create  --out bot.sqrl --password-file pw.txt       # prints the rescue code once
+sqrl-client identity import  --textual id.txt --rescue-code 1234-… --out bot.sqrl
+sqrl-client identity show    --identity bot.sqrl [--json]
+sqrl-client identity export  --identity bot.sqrl --format s4-text|textual|binary [--out FILE]
+sqrl-client identity rekey   --identity bot.sqrl --password … --rescue-code …   # new IUK, old one kept as previous
+sqrl-client identity change-password --identity bot.sqrl --password OLD --new-password NEW
+sqrl-client identity previous --identity bot.sqrl                        # superseded identities, most recent first
+sqrl-client login   https://example.com/login --identity bot.sqrl --cookies-out jar.txt [--no-cps] [--alt-id ID] [--json]
+sqrl-client query | disable | enable | remove URL …                      # enable/remove need --rescue-code
+sqrl-client conformance https://example.com/login [--report junit.xml] [--feature ask=on] [--only CASE,…]
+```
+
+Identities come from `--identity FILE` with `--password`/`--password-file`, from the
+`SQRL_IDENTITY_FILE`/`SQRL_PASSWORD`/`SQRL_PASSWORD_FILE`/`SQRL_RESCUE_CODE` variables, or
+from `--iuk-hex`/`SQRL_IUK_HEX` for throwaway test identities. `--pw-seconds` and
+`--rescue-seconds` shorten EnScrypt for test identities. Exit codes: 0 success, 1 the site
+refused (protocol), 2 transport failure, 3 usage.
+
 ## Conformance suite
 
 ```ruby

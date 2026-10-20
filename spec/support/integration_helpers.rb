@@ -26,6 +26,14 @@ class ExampleApp
 
     "example #{name} is not built yet (missing Gemfile.lock or #{ExampleDescriptors[name].ready})"
   end
+
+  # Why the ask/sin pass cannot run for an example yet, or nil when it can.
+  def self.ask_sin_skip_reason(name)
+    return skip_reason(name) if skip_reason(name)
+    return nil if ExampleDescriptors[name].ask_sin_supported?(File.join(ROOT, name))
+
+    "example #{name} does not read SQRL_ASK / SQRL_SIN yet"
+  end
 end
 
 # The bot's HTTP transport for an example: a plain {SQRL::Client::Transport}, except that a
@@ -69,13 +77,13 @@ end
 #     include_context "live example app", "rack-app"
 #     ...
 #   end
-RSpec.shared_context "live example app" do |app_name|
+RSpec.shared_context "live example app" do |app_name, env: {}|
   let(:descriptor) { ExampleDescriptors[app_name] }
 
   before(:all) do
-    @example_app = ExampleApp.start(app_name)
+    @example_app = ExampleApp.start(app_name, env: env)
   rescue StandardError => e
-    raise "could not boot #{app_name}: #{e.message}"
+    raise "could not boot #{app_name}#{env.empty? ? '' : " with #{env}"}: #{e.message}"
   end
 
   after(:all) do

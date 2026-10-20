@@ -25,6 +25,9 @@ class OmniauthApp < Sinatra::Base
              host: ENV["SQRL_HOST"],
              on_unknown_identity: (ENV["SQRL_UNKNOWN_IDENTITY"] || :create).to_sym,
              require_ip_match: ENV["SQRL_IGNORE_IP"].nil?,
+             # SQRL_ASK=1 poses an ask= (Allow / Deny) on every login; SQRL_SIN=1 sends a sin= challenge.
+             ask: (SQRL::Ask.new(message: "Allow this login from the OmniAuth demo?", buttons: [{ label: "Allow" }, { label: "Deny" }]) if ENV["SQRL_ASK"]),
+             sin: (ENV["SQRL_SIN"] ? "0" : nil),
              title: "OmniAuth SQRL demo"
   end
 

@@ -89,6 +89,58 @@ RSpec.describe SQRL::Client::CLI do
     end
   end
 
+  it "exports, re-keys, changes the password and lists previous identities" do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "bot.sqrl")
+      code, out, = run_cli("identity", "create", "--out", path, "--password", "pw", "--pw-seconds", "1", "--rescue-seconds", "0.001", "--json")
+      expect(code).to eq(0)
+      created = JSON.parse(out)
+
+      code, out, = run_cli("identity", "export", "--identity", path, "--password", "pw", "--format", "s4-text")
+      expect(code).to eq(0)
+      expect(out).to start_with("SQRLDATA")
+      expect(run_cli("identity", "export", "--identity", path, "--password", "pw", "--format", "binary").first).to eq(3)
+      bin = File.join(dir, "bot.bin")
+      expect(run_cli("identity", "export", "--identity", path, "--password", "pw", "--format", "binary", "--out", bin).first).to eq(0)
+      expect(File.binread(bin)).to start_with("sqrldata")
+      textual = File.join(dir, "bot.txt")
+      expect(run_cli("identity", "export", "--identity", path, "--password", "pw", "--format", "textual", "--out", textual).first).to eq(0)
+      expect(File.read(textual)).to match(/\A[2-9A-Za-z ]+(\n[2-9A-Za-z ]+)*\n?\z/)
+      imported = File.join(dir, "imported.sqrl")
+      code, out, = run_cli("identity", "import", "--textual", textual, "--rescue-code", created["rescue_code"], "--out", imported, "--password", "pw2", "--json")
+      expect(code).to eq(0)
+      expect(JSON.parse(out)["fingerprint"]).to eq(created["fingerprint"])
+
+      expect(run_cli("identity", "previous", "--identity", path, "--password", "pw")).to match([0, /previous: none/, ""])
+
+      code, out, = run_cli("identity", "change-password", "--identity", path, "--password", "pw", "--new-password", "pw3", "--pw-seconds", "1")
+      expect(code).to eq(0)
+      expect(out).to include("Password changed")
+      expect(run_cli("identity", "show", "--identity", path, "--password", "pw").first).to eq(1)
+      expect(run_cli("identity", "show", "--identity", path, "--password", "pw3").first).to eq(0)
+
+      first = run_cli("login", site.login_url, "--identity", path, "--password", "pw3")
+      expect(first.first).to eq(0)
+
+      expect(run_cli("identity", "rekey", "--identity", path, "--password", "pw3").first).to eq(3) # needs the rescue code
+      code, out, = run_cli("identity", "rekey", "--identity", path, "--password", "pw3", "--rescue-code", created["rescue_code"], "--rescue-seconds", "0.001", "--json")
+      expect(code).to eq(0)
+      rekeyed = JSON.parse(out)
+      expect(rekeyed["fingerprint"]).not_to eq(created["fingerprint"])
+      expect(rekeyed["previous_identities"]).to eq(1)
+      expect(rekeyed["rescue_code"]).to match(/\A\d{4}(-\d{4}){5}\z/)
+      code, out, = run_cli("identity", "previous", "--identity", path, "--password", "pw3", "--json")
+      expect(code).to eq(0)
+      expect(JSON.parse(out)).to eq("current" => rekeyed["fingerprint"], "previous" => [{ "index" => 0, "fingerprint" => created["fingerprint"] }])
+
+      code, out, = run_cli("login", site.login_url, "--identity", path, "--password", "pw3")
+      expect(code).to eq(0)
+      expect(out).to include("account re-keyed")
+      # the old rescue code no longer unlocks the file
+      expect(run_cli("identity", "rekey", "--identity", path, "--password", "pw3", "--rescue-code", created["rescue_code"], "--rescue-seconds", "0.001").first).to eq(1)
+    end
+  end
+
   it "runs the conformance suite and writes a JUnit report" do
     Dir.mktmpdir do |dir|
       report = File.join(dir, "junit.xml")

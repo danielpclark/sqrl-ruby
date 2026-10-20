@@ -1,8 +1,14 @@
 # frozen_string_literal: true
 
 require_relative "../support/shared_examples/live_sqrl_app"
+require_relative "../support/shared_examples/live_sqrl_app_ask_sin"
 
 RSpec.describe "examples/omniauth-app (live)", skip: ExampleApp.skip_reason("omniauth-app") do
   include_context "live example app", "omniauth-app"
   it_behaves_like "a live SQRL example app"
+
+  describe "with SQRL_ASK=1 and SQRL_SIN=1", skip: ExampleApp.ask_sin_skip_reason("omniauth-app") do
+    include_context "live example app", "omniauth-app", env: ExampleDescriptors::ASK_SIN_ENV
+    it_behaves_like "a live SQRL example app with ask and sin"
+  end
 end

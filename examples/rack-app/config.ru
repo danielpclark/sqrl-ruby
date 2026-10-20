@@ -6,7 +6,9 @@
 #   bundle exec rackup -p 9292
 #
 # SQRL_HOST sets the public host placed in sqrl:// URLs (defaults to the request host).
-# The in-memory stores reset when the process restarts; a real site uses persistent ones.
+# SQRL_ASK=1 poses an ask= question (Allow / Deny) on every login; SQRL_SIN=1 sends a
+# sin= secret-index challenge. The in-memory stores reset when the process restarts; a real
+# site uses persistent ones.
 
 require "bundler/setup"
 require "securerandom"
@@ -27,7 +29,9 @@ use SQRL::Rack::Middleware,
     host: ENV["SQRL_HOST"],
     after_login: "/protected",
     on_unknown_identity: (ENV["SQRL_UNKNOWN_IDENTITY"] || :create).to_sym,
-    require_ip_match: ENV["SQRL_IGNORE_IP"].nil?
+    require_ip_match: ENV["SQRL_IGNORE_IP"].nil?,
+    ask: (SQRL::Ask.new(message: "Allow this login from the Rack demo?", buttons: [{ label: "Allow" }, { label: "Deny" }]) if ENV["SQRL_ASK"]),
+    sin: (ENV["SQRL_SIN"] ? "0" : nil)
 
 module RackApp
   module_function
