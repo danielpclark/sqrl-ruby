@@ -1,0 +1,10 @@
+<h1>Sinatra SQRL demo</h1>
+<% if sqrl_authenticated? %>
+  <p id="state">Logged in as <code><%= current_sqrl_identity.idk_b64 %></code>
+     (logins this session: <%= session["login_count"] %>).</p>
+  <p><a href="/protected">Protected page</a></p>
+  <form method="post" action="/logout"><button>Log out</button></form>
+<% else %>
+  <p id="state">Not logged in.</p>
+  <p><a href="/login">Sign in with SQRL</a></p>
+<% end %>

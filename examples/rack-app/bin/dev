@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export SQRL_HOST="${SQRL_HOST:-localhost:${PORT:-9292}}"
+exec bundle exec rackup -p "${PORT:-9292}" -o 127.0.0.1 "$@"
