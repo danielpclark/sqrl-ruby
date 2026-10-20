@@ -24,7 +24,7 @@ RSpec.shared_examples "a live SQRL example app" do
     end
 
     it "refuses the protected page to a browser that has not logged in" do
-      expect(protected_status(new_transport)).to eq(403)
+      expect(protected_status(new_transport)).to eq(descriptor.anonymous_protected_status)
     end
 
     it "recognises the same identity from a second browser without creating another account" do
@@ -121,7 +121,7 @@ RSpec.shared_examples "a live SQRL example app" do
         page.visit(app.url(descriptor.home_path))
         page.click_button(descriptor.logout[:text])
         page.visit(app.url(descriptor.protected_path))
-        expect(page.status_code).to eq(403)
+        expect_browser_anonymous(page)
       end
     end
 

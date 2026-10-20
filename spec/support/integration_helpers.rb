@@ -104,6 +104,16 @@ RSpec.shared_context "live example app" do |app_name|
   end
 
   def protected_status(transport)
-    transport.get(app.url(descriptor.protected_path)).status
+    transport.get(app.url(descriptor.protected_path), follow_redirects: false).status
+  end
+
+  # Asserts that a browser (Capybara session) that is not logged in cannot see the
+  # protected page: either a 403, or a redirect that ends on the login page.
+  def expect_browser_anonymous(page)
+    if descriptor.anonymous_protected_status == 403
+      expect(page.status_code).to eq(403)
+    else
+      expect(page.current_path).to eq(descriptor.login_path)
+    end
   end
 end

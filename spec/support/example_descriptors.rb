@@ -19,8 +19,13 @@ require "cgi"
 
 module ExampleDescriptors
   Descriptor = Struct.new(:name, :login_path, :login_page, :browser_login, :protected_path, :home_path,
-                          :logged_in, :logout, :cancel, :features, :ready, :ready_pattern, keyword_init: true) do
+                          :logged_in, :logout, :cancel, :features, :ready, :ready_pattern, :anonymous_status,
+                          keyword_init: true) do
     def login_url(app) = app.url(login_path)
+
+    # HTTP status the protected page answers to a browser that has not logged in:
+    # 403 for the Rack-style examples, 302 (redirect to the sign-in page) for Rails and Devise.
+    def anonymous_protected_status = anonymous_status || 403
   end
 
   IDK_MARKER = /Hello, <code>[A-Za-z0-9_-]{43}<\/code>|id="identity"|Logged in as/
@@ -55,13 +60,14 @@ module ExampleDescriptors
     ),
     "rails-auth-app" => Descriptor.new(
       name: "rails-auth-app", login_path: "/session/new", protected_path: "/protected", home_path: "/",
-      logged_in: ->(body) { body.match?(/Logged in|id="identity"|Hello/) }, logout: { text: "Log out" }, cancel: false,
-      features: {}, ready: "config/initializers/sqrl.rb"
+      logged_in: ->(body) { body.match?(/Signed in as|id="protected"/) }, logout: { text: "Sign out" }, cancel: false,
+      features: {}, ready: "config/initializers/sqrl.rb", anonymous_status: 302
     ),
     "devise-app" => Descriptor.new(
       name: "devise-app", login_path: "/users/sign_in", protected_path: "/protected", home_path: "/",
       logged_in: ->(body) { body.match?(/Logged in|Signed in|id="identity"|Hello/) }, logout: { text: "Log out" },
-      cancel: false, features: {}, ready: "app/models/user.rb", ready_pattern: /sqrl_authenticatable/
+      cancel: false, features: {}, ready: "app/models/user.rb", ready_pattern: /sqrl_authenticatable/,
+      anonymous_status: 302
     )
   }.freeze
 

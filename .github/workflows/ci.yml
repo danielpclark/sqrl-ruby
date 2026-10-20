@@ -33,6 +33,11 @@ jobs:
           bundler-cache: true
       - uses: browser-actions/setup-chrome@v1
         id: chrome
+      - name: Install the example applications' bundles
+        run: |
+          for dir in examples/*/; do
+            (cd "$dir" && bundle install --jobs 4 --quiet)
+          done
       - name: Integration specs
         env:
           BROWSER_PATH: ${{ steps.chrome.outputs.chrome-path }}
