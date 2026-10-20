@@ -27,11 +27,11 @@ RSpec.describe SQRL::Rack::HostResolver do
     expect(resolver.resolve(request_for("[2001:db8::1]:3000", scheme: "http"))).to eq(["[2001:db8::1]:3000", "sqrl"])
     expect(log.string.scan("host not configured").size).to eq(1)
 
-    resolver.fetch(["a.example", "sqrl", ""], 1)
-    resolver.fetch(["a.example", "sqrl", "/mounted"], 2) # same host, different prefix: fine
-    resolver.fetch(["b.example", "sqrl", ""], 3)
-    expect { resolver.fetch(["c.example", "sqrl", ""], 4) }.to raise_error(SQRL::Rack::HostNotAllowed, /limit 2/)
-    expect(resolver.fetch(["a.example", "sqrl", ""], 99)).to eq(1)
+    resolver.fetch(["a.example", "sqrl", ""]) { 1 }
+    resolver.fetch(["a.example", "sqrl", "/mounted"]) { 2 } # same host, different prefix: fine
+    resolver.fetch(["b.example", "sqrl", ""]) { 3 }
+    expect { resolver.fetch(["c.example", "sqrl", ""]) { 4 } }.to raise_error(SQRL::Rack::HostNotAllowed, /limit 2/)
+    expect(resolver.fetch(["a.example", "sqrl", ""]) { 99 }).to eq(1)
   end
 
   it "rejects derived hosts outside allowed_hosts" do

@@ -31,6 +31,8 @@ Style/ClassAndModuleChildren:
   Enabled: false
 Style/OptionalBooleanParameter:
   Enabled: false
+Style/RedundantFetchBlock:   # rewrites fetch(key) { } on non-Hash receivers too
+  Enabled: false
 
 Layout/LineLength:
   Max: 150
