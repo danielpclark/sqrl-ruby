@@ -436,6 +436,23 @@ RSpec.describe "protocol flows" do
     expect(r.tif).not_to be_error
   end
 
+  it "records on the pending login whether the authenticating request's IP matched" do
+    handler = new_handler
+    id = identity(17)
+    login_id, s = new_session(handler, id)
+    exchange(handler, s, s.query)
+    exchange(handler, s, s.ident)
+    expect(handler.stores.pending_logins.find(login_id).ip_matched).to be(true)
+
+    login_id, s = new_session(handler, id, SQRL::ClientOptions.new(noiptest: true))
+    s.feed(post(handler, s.query, "198.51.100.1").body)
+    s.feed(post(handler, s.ident, "198.51.100.1").body)
+    expect(s.state).to eq(:known)
+    pending = handler.stores.pending_logins.find(login_id)
+    expect(pending).to be_authenticated
+    expect(pending.ip_matched).to be(false)
+  end
+
   it "flags a different identity mid-session as a bad association" do
     handler = new_handler
     a = identity(17)

@@ -64,6 +64,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_060240) do
     t.string "ip"
     t.string "return_to"
     t.string "link_user_ref"
+    t.boolean "ip_matched", default: false, null: false
     t.datetime "expires_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

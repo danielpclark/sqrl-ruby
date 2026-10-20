@@ -31,9 +31,15 @@ module SQRL
       # @param script_path [String] app-relative path serving +sqrl.js+
       # @param ip [#call, nil] +(request) -> String+ resolving the client IP; defaults to
       #   +Rack::Request#ip+
+      # +poll_requires_ip_match+ (default true): a login completed through the browser's
+      # own cookie (the poll path, no CPS token) counts only when the SQRL client's IP
+      # matched the browser's. Without it, a client that sent +noiptest+ could be tricked
+      # into authenticating a login page opened by someone else, who would then be
+      # logged in as that identity. CPS completions are unaffected.
       def initialize(handler:, session_key: SESSION_KEY, identity_key: IDENTITY_KEY, status_path: "/sqrl/status",
-                     callback_path: nil, script_path: "/sqrl/sqrl.js", ip: nil)
+                     callback_path: nil, script_path: "/sqrl/sqrl.js", ip: nil, poll_requires_ip_match: true)
         @handler = handler
+        @poll_requires_ip_match = poll_requires_ip_match
         @config = handler.config
         @session_key = session_key
         @identity_key = identity_key
@@ -86,7 +92,7 @@ module SQRL
             login = @handler.stores.pending_logins.find(id)
             if login.nil? || login.expired?(@config.now)
               { authenticated: false, expired: true }
-            elsif login.authenticated?
+            elsif login.authenticated? && poll_completable?(login)
               { authenticated: true, next: callback_url(request) }
             else
               { authenticated: false }
@@ -115,6 +121,7 @@ module SQRL
           end
         return nil if login.nil? || expected_id.nil? || login.id != expected_id
         return nil unless login.authenticated? && !login.expired?(@config.now)
+        return nil if via == :poll && !poll_completable?(login)
 
         identity = @handler.stores.identities.find(login.authenticated_idk)
         return nil if identity.nil? || identity.disabled?
@@ -122,6 +129,11 @@ module SQRL
         session.delete(@session_key)
         session[@identity_key] = identity.idk_b64
         Completion.new(identity: identity, pending_login: login, via: via)
+      end
+
+      # Whether a pending login may be completed without a CPS token.
+      def poll_completable?(login)
+        !@poll_requires_ip_match || login.ip_matched == true
       end
 
       # The identity currently logged in through SQRL in this browser session, or nil.

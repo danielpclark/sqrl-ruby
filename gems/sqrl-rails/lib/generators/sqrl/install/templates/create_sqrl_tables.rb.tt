@@ -45,6 +45,7 @@ class CreateSQRLTables < ActiveRecord::Migration<%= migration_version %>
       t.string :ip
       t.string :return_to
       t.string :link_user_ref
+      t.boolean :ip_matched, null: false, default: false
       t.datetime :expires_at
       t.timestamps
     end

@@ -1,6 +1,6 @@
 # SQRL Login for Ruby – Implementation Plan
 
-Status: proposal, awaiting review · Date: 2026-10-20 · Repository: `danielpclark/ruby_sqrl`
+Status: implemented on branch `claude/kind-babbage-dduewx` (see §10 for what each milestone delivered) · Date: 2026-10-20 · Repository: `danielpclark/ruby_sqrl`
 
 This document is the master plan for bringing **SQRL (Secure Quick Reliable Login)** to the
 Ruby ecosystem: a protocol core, server-side integrations for Rack/Sinatra, OmniAuth,
@@ -886,9 +886,12 @@ Deliberately out of the first release; tracked here so the design leaves room fo
 
 Decisions the plan makes provisionally; please confirm or change.
 
-1. **Gem names.** `sqrl` is taken by a third party on rubygems.org. Proposed: `sqrl-core`,
-   `sqrl-rack`, `omniauth-sqrl`, `sqrl-rails`, `devise-sqrl`, `sqrl-client`. Alternative:
-   ask the current owner to transfer `sqrl` and use it for the core.
+1. **Gem names.** `sqrl` is taken by a third party on rubygems.org. Decided (2026-10-20):
+   keep `sqrl-core`, `sqrl-rack`, `omniauth-sqrl`, `sqrl-rails`, `devise-sqrl` and
+   `sqrl-client`. The dash follows the RubyGems convention for gems that extend another
+   library (`omniauth-github`, `rspec-rails`); `sqrl-core` and `sqrl-client` keep the
+   family prefix for consistency. Asking the owner of `sqrl` for a transfer remains an
+   option for the core.
 2. **Test framework.** RSpec for all gems and the integration suite, with the conformance
    suite also usable from Minitest. Rails example apps keep Rails' Minitest for their own
    generated tests.

@@ -163,7 +163,7 @@ module SQRL
         # @see SQRL::Server::PendingLoginStore
         class PendingLoginStore < SQRL::Server::PendingLoginStore
           COLUMNS = %i[authenticated_at btn asked ip return_to link_user_ref expires_at cps_token
-                       cps_token_expires_at].freeze
+                       cps_token_expires_at ip_matched].freeze
 
           def create(id, ip:, return_to:, expires_at:, link_user_ref: nil, created_at: Time.now)
             row = PendingLogin.create!(login_id: id, ip: ip, return_to: return_to, expires_at: expires_at,
@@ -222,7 +222,8 @@ module SQRL
               created_at: row.created_at, expires_at: row.expires_at,
               authenticated_idk: Codec.decode(row.authenticated_idk), authenticated_at: row.authenticated_at,
               btn: row.btn, asked: row.asked, last_command: row.last_command&.to_sym,
-              cps_token: row.cps_token, cps_token_expires_at: row.cps_token_expires_at
+              cps_token: row.cps_token, cps_token_expires_at: row.cps_token_expires_at,
+              ip_matched: row.respond_to?(:ip_matched) ? row.ip_matched == true : false
             )
           end
         end

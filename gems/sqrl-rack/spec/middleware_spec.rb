@@ -128,6 +128,39 @@ RSpec.describe SQRL::Rack::Middleware do
     end
   end
 
+  describe "non-CPS login from a client whose IP did not match" do
+    def ident_from_elsewhere
+      browser = new_browser
+      url = visit_login(browser)
+      session = SQRL::Session.new(identity, url, options: SQRL::ClientOptions.new(cps: false, noiptest: true))
+      client = new_client
+      post_sqrl(client, session, session.query, ip: "203.0.113.99")
+      post_sqrl(client, session, session.ident, ip: "203.0.113.99")
+      expect(session.state).to eq(:known)
+      browser
+    end
+
+    it "is not completable through the poll by default" do
+      browser = ident_from_elsewhere
+      browser.get("/sqrl/status")
+      expect(JSON.parse(browser.last_response.body)).to eq("authenticated" => false)
+      browser.get("/sqrl/callback")
+      expect(browser.last_response.status).to eq(403)
+    end
+
+    context "when the site opts out of the check" do
+      let(:middleware_options) { super().merge(poll_requires_ip_match: false) }
+
+      it "is completable through the poll" do
+        browser = ident_from_elsewhere
+        browser.get("/sqrl/status")
+        expect(JSON.parse(browser.last_response.body)["authenticated"]).to be(true)
+        browser.get("/sqrl/callback")
+        expect(browser.last_response.status).to eq(303)
+      end
+    end
+  end
+
   describe "non-CPS login (polling)" do
     it "reports authenticated on the status poll, then completes once via the callback" do
       browser = new_browser

@@ -42,12 +42,18 @@ module SQRL
     # One login attempt as seen from a browser: created when the login page is rendered
     # (its id lives in the browser's session), authenticated by the SQRL client, and
     # completed either through the CPS callback (one-time +cps_token+) or by polling.
+    # +ip_matched+ records whether the request that authenticated this login came from
+    # the IP that requested the login page (TIF +IPS_MATCHED+). Completions that rely on
+    # the browser's own cookie (the poll path) should require it, because a client that
+    # sent +noiptest+ may have been tricked into authenticating a login page it did not
+    # open; CPS completions do not need it, since the token lands in the client's own
+    # browser.
     PendingLogin = Struct.new(:id, :authenticated_idk, :authenticated_at, :btn, :asked, :last_command,
                               :cps_token, :cps_token_expires_at, :ip, :return_to, :link_user_ref,
-                              :created_at, :expires_at, keyword_init: true) do
+                              :created_at, :expires_at, :ip_matched, keyword_init: true) do
       def initialize(id:, ip: nil, return_to: nil, link_user_ref: nil, created_at: nil, expires_at: nil,
                      authenticated_idk: nil, authenticated_at: nil, btn: nil, asked: false, last_command: nil,
-                     cps_token: nil, cps_token_expires_at: nil)
+                     cps_token: nil, cps_token_expires_at: nil, ip_matched: false)
         super
       end
 

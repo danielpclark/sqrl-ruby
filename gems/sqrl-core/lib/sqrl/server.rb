@@ -379,7 +379,8 @@ module SQRL
         def authenticate!(identity, cmd, opts)
           @result.identity = identity
           @result.authenticated = true
-          @login = @stores.pending_logins.update(@login_id, authenticated_idk: identity.idk, authenticated_at: @now)
+          @login = @stores.pending_logins.update(@login_id, authenticated_idk: identity.idk, authenticated_at: @now,
+                                                            ip_matched: (@tif & Tif::IPS_MATCHED) != 0)
           issue_cps_url if opts.cps?
           @config.on_authenticated&.call(identity, @login, cmd)
         end

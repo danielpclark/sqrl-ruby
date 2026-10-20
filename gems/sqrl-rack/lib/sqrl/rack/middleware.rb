@@ -29,7 +29,7 @@ module SQRL
         path: "/sqrl/cli", callback_path: "/sqrl/callback", status_path: "/sqrl/status", script_path: "/sqrl/sqrl.js",
         session_key: Endpoint::SESSION_KEY, identity_key: Endpoint::IDENTITY_KEY, after_login: "/"
       }.freeze
-      ENDPOINT_KEYS = %i[status_path script_path session_key identity_key ip].freeze
+      ENDPOINT_KEYS = %i[status_path script_path session_key identity_key ip poll_requires_ip_match].freeze
       MIDDLEWARE_KEYS = %i[stores on_login after_login failure_path session_identity].freeze
 
       # @param app [#call]
@@ -103,7 +103,8 @@ module SQRL
         handler = Server::Handler.new(config: config, stores: stores)
         Endpoint.new(handler: handler, session_key: options[:session_key], identity_key: options[:identity_key],
                      status_path: options[:status_path], callback_path: options[:callback_path],
-                     script_path: options[:script_path], ip: options[:ip])
+                     script_path: options[:script_path], ip: options[:ip],
+                     poll_requires_ip_match: options.fetch(:poll_requires_ip_match, true))
       end
 
       def complete(endpoint, request)
