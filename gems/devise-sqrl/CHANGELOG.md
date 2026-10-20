@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-10-20
+
+- No changes. Released with sqrl-core 0.1.1, which fixes the `NoMethodError` on Ruby 3.1
+  and 3.2; every gem in the family shares one version.
+
 ## 0.1.0 — 2026-10-20
 
 First release.

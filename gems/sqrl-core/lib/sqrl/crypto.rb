@@ -19,6 +19,25 @@ module SQRL
     # Default scrypt log2(N) used by SQRL clients (N = 512).
     DEFAULT_LOG_N = 9
 
+    # Whether the openssl gem has OpenSSL::PKey.new_raw_private_key / new_raw_public_key
+    # (openssl 3.2, bundled with Ruby 3.3). Older supported versions (openssl 3.0 and 3.1,
+    # bundled with Ruby 3.1 and 3.2) build the same keys from their DER encodings instead.
+    RAW_KEY_API = OpenSSL::PKey.respond_to?(:new_raw_private_key) && OpenSSL::PKey.respond_to?(:new_raw_public_key)
+
+    # DER prefixes that turn a 32-byte Ed25519 / X25519 key into a PKCS#8 PrivateKeyInfo or
+    # a SubjectPublicKeyInfo (RFC 8410): the key bytes follow the prefix verbatim.
+    DER_PREFIXES = {
+      "ED25519" => {
+        private: ["302e020100300506032b657004220420"].pack("H*"),
+        public: ["302a300506032b6570032100"].pack("H*")
+      },
+      "X25519" => {
+        private: ["302e020100300506032b656e04220420"].pack("H*"),
+        public: ["302a300506032b656e032100"].pack("H*")
+      }
+    }.freeze
+    private_constant :DER_PREFIXES
+
     module_function
 
     # SHA-256 digest.
@@ -130,12 +149,12 @@ module SQRL
     def ed25519_from_seed(seed)
       raise CryptoError, "ed25519 seed must be 32 bytes" unless seed.bytesize == 32
 
-      OpenSSL::PKey.new_raw_private_key("ED25519", seed.b)
+      raw_private_key("ED25519", seed.b)
     end
 
     # Public key bytes of the Ed25519 key derived from +seed+.
     def ed25519_public(seed)
-      ed25519_from_seed(seed).raw_public_key
+      raw_public_bytes(ed25519_from_seed(seed))
     end
 
     # Sign +msg+ with the Ed25519 key derived from +seed+; returns the 64-byte signature.
@@ -147,20 +166,44 @@ module SQRL
     def ed25519_verify(public_key, msg, signature)
       return false unless public_key.bytesize == 32 && signature.bytesize == 64
 
-      OpenSSL::PKey.new_raw_public_key("ED25519", public_key.b).verify(nil, signature.b, msg.b)
+      raw_public_key("ED25519", public_key.b).verify(nil, signature.b, msg.b)
     rescue OpenSSL::PKey::PKeyError
       false
     end
 
     # X25519 public key for a scalar (scalar multiplication of the base point).
     def x25519_base(scalar)
-      OpenSSL::PKey.new_raw_private_key("X25519", scalar.b).raw_public_key
+      raw_public_bytes(raw_private_key("X25519", scalar.b))
     end
 
     # X25519 Diffie-Hellman: +scalar * point+.
     def x25519(scalar, point)
-      OpenSSL::PKey.new_raw_private_key("X25519", scalar.b)
-                   .derive(OpenSSL::PKey.new_raw_public_key("X25519", point.b))
+      raw_private_key("X25519", scalar.b).derive(raw_public_key("X25519", point.b))
+    end
+
+    # Private key object of +type+ ("ED25519" or "X25519") from its 32 raw bytes.
+    # @api private
+    def raw_private_key(type, bytes)
+      return OpenSSL::PKey.new_raw_private_key(type, bytes) if RAW_KEY_API
+
+      OpenSSL::PKey.read(DER_PREFIXES.fetch(type)[:private] + bytes)
+    end
+
+    # Public key object of +type+ ("ED25519" or "X25519") from its 32 raw bytes.
+    # @api private
+    def raw_public_key(type, bytes)
+      return OpenSSL::PKey.new_raw_public_key(type, bytes) if RAW_KEY_API
+
+      OpenSSL::PKey.read(DER_PREFIXES.fetch(type)[:public] + bytes)
+    end
+
+    # The 32 raw public key bytes of an Ed25519 or X25519 key object.
+    # @api private
+    def raw_public_bytes(pkey)
+      return pkey.raw_public_key if RAW_KEY_API
+
+      # A SubjectPublicKeyInfo for these key types is the 12-byte prefix followed by the key.
+      pkey.public_to_der[-32, 32]
     end
   end
 end

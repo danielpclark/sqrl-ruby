@@ -125,8 +125,13 @@ class ExampleApp
     base_url + path
   end
 
+  # The app's whole environment (spawned with +unsetenv_others+): the one this process had
+  # before Bundler touched it (`bundle exec` points GEM_HOME / GEM_PATH at this repository's
+  # bundle, which has none of the app's own gems), minus anything Bundler-specific, plus the
+  # app's Gemfile and run settings.
   def environment
-    base = ENV.to_h.reject { |k, _| k.start_with?("BUNDLE_") || k == "RUBYOPT" }
+    base = defined?(Bundler) ? Bundler.original_env : ENV.to_h
+    base = base.reject { |k, _| k.start_with?("BUNDLE_") || k == "RUBYOPT" }
     bindir = RbConfig::CONFIG["bindir"]
     path = [bindir, base["PATH"]].compact.join(File::PATH_SEPARATOR)
     base.merge(
@@ -145,7 +150,7 @@ class ExampleApp
     command = @definition.command.map do |c|
       c.sub("%PORT%", @port.to_s).sub("%KEY%", tls[:key]).sub("%CERT%", tls[:cert])
     end
-    @stdin, @stdout, @wait = Open3.popen2e(environment, *command, chdir: dir, pgroup: true)
+    @stdin, @stdout, @wait = Open3.popen2e(environment, *command, chdir: dir, pgroup: true, unsetenv_others: true)
     @reader = Thread.new do
       @stdout.each_line { |line| @log << line }
     rescue IOError
@@ -186,7 +191,7 @@ class ExampleApp
   def run_setup
     return unless @definition.setup
 
-    out, status = Open3.capture2e(environment, *@definition.setup, chdir: dir)
+    out, status = Open3.capture2e(environment, *@definition.setup, chdir: dir, unsetenv_others: true)
     raise "setup for #{@name} failed:\n#{out}" unless status.success?
   end
 

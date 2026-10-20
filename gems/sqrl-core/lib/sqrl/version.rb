@@ -2,5 +2,5 @@
 
 module SQRL
   # Version shared by every gem in the family.
-  VERSION = "0.1.0"
+  VERSION = "0.1.1"
 end
