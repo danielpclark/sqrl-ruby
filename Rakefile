@@ -42,5 +42,5 @@ end
 
 desc "Check that every gem builds cleanly and that the tag would match the version"
 task release_check: :build do
-  Dir["pkg/*.gem"].sort.each { |g| puts "built #{g}" }
+  Dir["pkg/*.gem"].each { |g| puts "built #{g}" }
 end
