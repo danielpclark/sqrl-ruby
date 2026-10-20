@@ -38,10 +38,12 @@ module SQRL
         module Codec
           module_function
 
+          # @return [String, nil] binary bytes as base64url for a string column
           def encode(bytes)
             bytes.nil? ? nil : SQRL::Util.b64u_encode(bytes.b)
           end
 
+          # @return [String, nil] binary bytes from a base64url column
           def decode(text)
             text.nil? || text.empty? ? nil : SQRL::Util.b64u_decode(text)
           end
@@ -51,6 +53,7 @@ module SQRL
         class NutStore < SQRL::Server::NutStore
           include WithConnection
 
+          # Issue on ActiveRecord; same contract as +SQRL::Server::NutStore#issue+.
           def issue(nut:, pending_login_id:, expected_server:, ip:, bound_idk:, expires_at:)
             with_connection do
               row = Nut.create!(nut: nut, pending_login_id: pending_login_id, expected_server: expected_server, ip: ip,
@@ -59,6 +62,7 @@ module SQRL
             end
           end
 
+          # Consume on ActiveRecord; same contract as +SQRL::Server::NutStore#consume+.
           def consume(nut, now: Time.now)
             return nil if nut.nil? || nut.empty?
 
@@ -70,6 +74,8 @@ module SQRL
             end
           end
 
+          # Delete expired rows.
+          # @return [Integer] number deleted
           def prune!(now = Time.now)
             with_connection { Nut.where("used_at IS NOT NULL OR expires_at <= ?", now).delete_all }
             nil
@@ -87,13 +93,16 @@ module SQRL
 
         # @see SQRL::Server::IdentityStore
         class IdentityStore < SQRL::Server::IdentityStore
+          # Identity columns that +update+ may change.
           ATTRIBUTE_COLUMNS = %i[suk vuk disabled sqrlonly hardlock ins logins].freeze
 
+          # Find on ActiveRecord; same contract as +SQRL::Server::IdentityStore#find+.
           def find(idk)
             row = Identity.active.find_by(idk: Codec.encode(idk))
             row && to_record(row)
           end
 
+          # Create on ActiveRecord; same contract as +SQRL::Server::IdentityStore#create+.
           def create(**attrs)
             identity = SQRL::Server::Identity.new(**attrs)
             row = Identity.new(idk: Codec.encode(identity.idk), suk: Codec.encode(identity.suk),
@@ -111,6 +120,7 @@ module SQRL
             to_record(row)
           end
 
+          # Update on ActiveRecord; same contract as +SQRL::Server::IdentityStore#update+.
           def update(idk, **attrs)
             row = Identity.active.find_by(idk: Codec.encode(idk))
             return nil unless row
@@ -131,6 +141,7 @@ module SQRL
             to_record(row)
           end
 
+          # Rekey on ActiveRecord; same contract as +SQRL::Server::IdentityStore#rekey+.
           def rekey(old_idk, new_idk, suk:, vuk:, ins:)
             old_b64 = Codec.encode(old_idk)
             new_b64 = Codec.encode(new_idk)
@@ -148,6 +159,7 @@ module SQRL
             Identity.where(idk: Codec.encode(idk)).where.not(superseded_by: nil).exists?
           end
 
+          # Remove on ActiveRecord; same contract as +SQRL::Server::IdentityStore#remove+.
           def remove(idk)
             row = Identity.active.find_by(idk: Codec.encode(idk))
             return nil unless row
@@ -187,20 +199,24 @@ module SQRL
         class PendingLoginStore < SQRL::Server::PendingLoginStore
           include WithConnection
 
+          # Pending-login columns that +update+ may change.
           COLUMNS = %i[authenticated_at btn asked ip return_to link_user_ref expires_at cps_token
                        cps_token_expires_at ip_matched].freeze
 
+          # Create on ActiveRecord; same contract as +SQRL::Server::PendingLoginStore#create+.
           def create(id, ip:, return_to:, expires_at:, link_user_ref: nil, created_at: Time.now)
             row = PendingLogin.create!(login_id: id, ip: ip, return_to: return_to, expires_at: expires_at,
                                        link_user_ref: link_user_ref, created_at: created_at)
             to_record(row)
           end
 
+          # Find on ActiveRecord; same contract as +SQRL::Server::IdentityStore#find+.
           def find(id)
             row = id && PendingLogin.find_by(login_id: id)
             row && to_record(row)
           end
 
+          # Update on ActiveRecord; same contract as +SQRL::Server::IdentityStore#update+.
           def update(id, **attrs)
             row = PendingLogin.find_by(login_id: id)
             return nil unless row
@@ -218,6 +234,7 @@ module SQRL
             to_record(row)
           end
 
+          # Claim cps token on ActiveRecord; same contract as +SQRL::Server::PendingLoginStore#claim_cps_token+.
           def claim_cps_token(token, now: Time.now)
             return nil if token.nil? || token.empty?
 
@@ -236,6 +253,8 @@ module SQRL
             end
           end
 
+          # Delete expired rows.
+          # @return [Integer] number deleted
           def prune!(now = Time.now)
             PendingLogin.where("expires_at <= ?", now).delete_all
             nil

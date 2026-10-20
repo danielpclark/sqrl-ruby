@@ -213,11 +213,13 @@ module SQRL
         block
       end
 
+      # @return [Boolean] whether +other+ carries the same values
       def ==(other)
         other.is_a?(Type1Block) && to_bytes == other.to_bytes
       end
       alias eql? ==
 
+      # @return [Integer] hash consistent with {#==}
       def hash
         to_bytes.hash
       end
@@ -284,11 +286,13 @@ module SQRL
         block
       end
 
+      # @return [Boolean] whether +other+ carries the same values
       def ==(other)
         other.is_a?(Type2Block) && to_bytes == other.to_bytes
       end
       alias eql? ==
 
+      # @return [Integer] hash consistent with {#==}
       def hash
         to_bytes.hash
       end
@@ -326,6 +330,7 @@ module SQRL
         [length, 3, @edition].pack("vvv")
       end
 
+      # @return [String] the block serialised, header included
       def to_bytes
         plaintext + @enc_keys.join + @tag
       end
@@ -366,11 +371,13 @@ module SQRL
         block.tag = ct.byteslice(32 * keys.length, 16)
         block
       end
+      # @return [Boolean] whether +other+ carries the same values
 
       def ==(other)
         other.is_a?(Type3Block) && to_bytes == other.to_bytes
       end
       alias eql? ==
+      # @return [Integer] hash consistent with {#==}
 
       def hash
         to_bytes.hash
@@ -594,17 +601,22 @@ module SQRL
       @type2 = type2
       @type3 = Type3Block.encrypt(new_identity.previous_iuks, new_identity.imk, edition)
       new_identity
+      # @return [Boolean] whether +other+ carries the same values
     end
 
+    # @return [Boolean] whether +other+ carries the same values
     def ==(other)
       other.is_a?(S4Identity) && to_bytes == other.to_bytes
     end
+    # @return [Integer] hash consistent with {#==}
     alias eql? ==
 
+    # @return [Integer] hash consistent with {#==}
     def hash
       to_bytes.hash
     end
 
+    # @return [String] a short description with secret material redacted
     def inspect
       "#<SQRL::S4Identity type1=#{!@type1.nil?} type2=#{!@type2.nil?} edition=#{edition} unknown=#{@unknown.length}>"
     end

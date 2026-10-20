@@ -18,8 +18,11 @@ module SQRL
         def success? = (200..299).cover?(status)
         def redirect? = (300..399).cover?(status)
 
+        # @return [String, nil] a response header by name (case-insensitive)
         def [](name) = headers[name.to_s.downcase]
 
+        # @return [Object] the body parsed as JSON
+        # @raise [JSON::ParserError]
         def json
           require "json"
           JSON.parse(body)
@@ -27,12 +30,15 @@ module SQRL
           nil
         end
 
+        # @return [String] a short description with secret material redacted
         def inspect
           "#<SQRL::Client::Transport::Response #{status} #{final_url}>"
         end
       end
 
+      # HTTP statuses followed as redirects.
       REDIRECT_STATUSES = [301, 302, 303, 307, 308].freeze
+      # User-Agent sent with every request.
       DEFAULT_USER_AGENT = "sqrl-client/#{SQRL::VERSION} (Ruby #{RUBY_VERSION})".freeze
 
       # @return [HTTP::CookieJar]

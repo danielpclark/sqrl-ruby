@@ -3,6 +3,7 @@
 require "devise"
 require "sqrl-rails"
 
+# Devise namespace, reopened to add the SQRL module.
 module Devise
   # SQRL login for Devise.
   #
@@ -23,6 +24,7 @@ module Devise
   # gem); the Devise-specific choices are the +sqrl_*+ options below, set in
   # +Devise.setup+.
   module SQRL
+    # Same as SQRL::VERSION; the gems release in lockstep.
     VERSION = ::SQRL::VERSION
 
     # Raised for configuration problems.
@@ -82,6 +84,7 @@ module Devise
         Array(Devise.sqrl_only_blocked_strategies).map(&:to_sym).include?(name)
       end
 
+      # @return [Symbol] the Warden name of a strategy class
       def strategy_name(strategy)
         return nil if strategy.nil?
 

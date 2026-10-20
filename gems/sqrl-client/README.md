@@ -5,6 +5,12 @@ script, a test suite or an automated service needs to log in to a SQRL-enabled w
 without a browser or a human. It is also the test driver for the `sqrl-*` server gems and
 ships a conformance suite any SQRL server can be checked against.
 
+## Install
+
+```ruby
+gem "sqrl-client"
+```
+
 ```ruby
 require "sqrl/client"
 
@@ -100,7 +106,8 @@ Identities come from `--identity FILE` with `--password`/`--password-file`, from
 `SQRL_IDENTITY_FILE`/`SQRL_PASSWORD`/`SQRL_PASSWORD_FILE`/`SQRL_RESCUE_CODE` variables, or
 from `--iuk-hex`/`SQRL_IUK_HEX` for throwaway test identities. `--pw-seconds` and
 `--rescue-seconds` shorten EnScrypt for test identities. Exit codes: 0 success, 1 the site
-refused (protocol), 2 transport failure, 3 usage.
+refused (protocol), 2 transport failure, 3 usage. Cookies are written in Netscape format
+(`curl -b jar.txt`) or JSON (`--cookies-format json`).
 
 ## Conformance suite
 
@@ -129,24 +136,19 @@ RSpec.describe "my site" do
 end
 ```
 
-## Command line
-
-```
-sqrl-client identity create --out bot.sqrl              # prints the rescue code once
-sqrl-client identity import --textual id.txt --rescue-code … --out bot.sqrl
-sqrl-client login   https://example.com/login --identity bot.sqrl --cookies-out jar.txt
-sqrl-client login   https://example.com/login --iuk-hex $SQRL_IUK_HEX --json --no-cps
-sqrl-client disable https://example.com/login --identity bot.sqrl
-sqrl-client enable  https://example.com/login --identity bot.sqrl --rescue-code …
-sqrl-client remove  https://example.com/login --identity bot.sqrl --rescue-code …
-sqrl-client conformance https://example.com/login --report junit.xml --feature ask=on
-```
-
-Cookies are written in Netscape format (`curl -b jar.txt`) or JSON. Exit codes: 0 success,
-1 the site refused (protocol), 2 transport failure, 3 usage.
-
 ## Limits
 
 Ruby cannot wipe memory reliably; key material lives in ordinary Strings. Sites that show
 only a QR image (no `sqrl://` link anywhere in the page) are not supported yet. SQRL for
 APIs is not specified yet and therefore not implemented.
+
+## Testing
+
+The gem's own specs boot a small Rack site backed by `SQRL::Server::Handler`; this
+repository's integration suite (`spec/integration`) drives every example application with
+this client over HTTPS, and `spec/interop` runs the conformance suite against the Rust
+reference server. Run `bundle exec rake spec:sqrl-client`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

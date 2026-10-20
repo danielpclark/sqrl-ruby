@@ -1,5 +1,21 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 — 2026-10-20
 
-- Initial release.
+First release.
+
+- Complete SQRL wire protocol: `query`, `ident`, `disable`, `enable`, `remove`, every TIF
+  bit, `ask`/`btn` with a server-side accept-list, `sin`/`ins`/`pins`, previous identities
+  and re-keying, `x=` path extension, Alt-IDs, `can=`, Client Provided Session.
+- Cryptography on OpenSSL only: EnHash, EnScrypt, AES-256-GCM, Ed25519, X25519.
+- S4 identity files (type 1/2/3, binary and text), rescue codes, password changes,
+  re-keying, base56 textual identities; all published test vectors pass and GRC's reference
+  client request bodies are reproduced byte for byte.
+- `SQRL::Session`: the client transaction state machine; `sqrl://` (HTTPS) only unless
+  `insecure: true` (loopback testing mode).
+- `SQRL::Server::Handler` with `Config`, three store interfaces, in-memory and Redis store
+  sets, one-time CPS tokens, nut single use, `server=` echo verification, IP matching
+  (`require_ip_match`, on by default), `allowed_hosts`, `prune_every`, `before_issue` /
+  `before_handle` hooks and `SQRL::Server::RateLimited`.
+- A shared store-contract spec for store implementations.
+- Requires Ruby 3.1 or newer.

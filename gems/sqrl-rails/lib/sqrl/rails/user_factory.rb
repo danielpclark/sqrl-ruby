@@ -20,6 +20,7 @@ module SQRL
         model.create!(attributes_for(identity, model))
       end
 
+      # @return [Hash] placeholder attributes matching the columns and writers the user model has
       def attributes_for(identity, model)
         columns = model.respond_to?(:column_names) ? model.column_names : []
         handle = identity.idk_b64[0, 16].downcase.tr("_-", "xy")

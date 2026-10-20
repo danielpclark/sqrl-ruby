@@ -16,6 +16,7 @@ module SQRL
         allow_unauthenticated_access if respond_to?(:allow_unauthenticated_access)
       end
 
+      # Complete a login (CPS token or the browser's own pending login), resolve the user and sign in.
       def show
         completion = sqrl_endpoint.callback(request)
         return failure("SQRL login failed or expired. Please try again.") unless completion

@@ -6,6 +6,7 @@ module SQRL
   module Rack
     # The browser-side script shipped with the gem (+assets/sqrl.js+).
     module Assets
+      # Directory holding +sqrl.js+.
       ASSETS_DIR = File.expand_path("../../../assets", __dir__)
 
       module_function

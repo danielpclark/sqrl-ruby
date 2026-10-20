@@ -19,11 +19,13 @@ module SQRL
 
       before_action :require_sqrl_user
 
+      # List the current user's SQRL identities.
       def index
         @identities = Identity.active.for_user(@sqrl_user).order(:created_at)
         @current_idk = sqrl_endpoint.current_identity(request)&.idk_b64
       end
 
+      # Unlink one of the current user's SQRL identities.
       def destroy
         identity = Identity.active.for_user(@sqrl_user).find_by(id: params[:id])
         if identity

@@ -7,6 +7,7 @@ module SQRL
     # Framework-neutral HTML for a SQRL login: the link, the QR code and the status text
     # that +sqrl.js+ drives. Every framework integration renders this.
     module LoginBlock
+      # Default status texts, overridable through +texts:+.
       DEFAULT_TEXTS = {
         message: "Scan the code with your SQRL client, or click the link if it is on this device.",
         cps: "Local SQRL client detected.",

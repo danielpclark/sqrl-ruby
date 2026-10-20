@@ -30,12 +30,15 @@ module SQRL
     # +before_handle:+ (see {Server::Config}; a hook raising {Server::RateLimited} turns
     # into HTTP 429).
     class Middleware
+      # Option defaults.
       DEFAULTS = {
         path: "/sqrl/cli", callback_path: "/sqrl/callback", status_path: "/sqrl/status", script_path: "/sqrl/sqrl.js",
         refresh_path: "/sqrl/refresh", session_key: Endpoint::SESSION_KEY, identity_key: Endpoint::IDENTITY_KEY,
         after_login: "/"
       }.freeze
+      # Options consumed by {Endpoint} rather than {SQRL::Server::Config}.
       ENDPOINT_KEYS = %i[status_path script_path refresh_path session_key identity_key ip poll_requires_ip_match].freeze
+      # Options consumed by the middleware itself.
       MIDDLEWARE_KEYS = %i[stores on_login after_login failure_path session_identity host_cache_limit].freeze
 
       # @param app [#call]
@@ -47,6 +50,9 @@ module SQRL
         @mutex = Mutex.new
       end
 
+      # Rack entry point.
+      # @param env [Hash]
+      # @return [Array] a Rack response triple
       def call(env)
         request = ::Rack::Request.new(env)
         endpoint = endpoint_for(request)

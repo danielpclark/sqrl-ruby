@@ -19,6 +19,7 @@ module SQRL
           @nuts = {}
         end
 
+        # (see SQRL::Server::NutStore#issue)
         def issue(nut:, pending_login_id:, expected_server:, ip:, bound_idk:, expires_at:)
           record = NutRecord.new(nut: nut, pending_login_id: pending_login_id, expected_server: expected_server,
                                  ip: ip, bound_idk: bound_idk, expires_at: expires_at, used_at: nil)
@@ -26,6 +27,7 @@ module SQRL
           record.dup
         end
 
+        # (see SQRL::Server::NutStore#consume)
         def consume(nut, now: Time.now)
           @mutex.synchronize do
             record = @nuts[nut]
@@ -36,11 +38,14 @@ module SQRL
           end
         end
 
+        # Remove expired records.
+        # @return [Integer] number removed
         def prune!(now = Time.now)
           @mutex.synchronize { @nuts.delete_if { |_, r| r.used? || r.expired?(now) } }
           nil
         end
 
+        # @return [Integer] number of records held
         def size
           @mutex.synchronize { @nuts.size }
         end
@@ -55,10 +60,12 @@ module SQRL
           @superseded = {}
         end
 
+        # (see SQRL::Server::IdentityStore#find)
         def find(idk)
           @mutex.synchronize { @identities[idk.b]&.dup }
         end
 
+        # (see SQRL::Server::IdentityStore#create)
         def create(**attrs)
           identity = Identity.new(**attrs)
           @mutex.synchronize do
@@ -69,6 +76,7 @@ module SQRL
           identity.dup
         end
 
+        # (see SQRL::Server::IdentityStore#update)
         def update(idk, **attrs)
           @mutex.synchronize do
             identity = @identities[idk.b]
@@ -79,6 +87,7 @@ module SQRL
           end
         end
 
+        # (see SQRL::Server::IdentityStore#rekey)
         def rekey(old_idk, new_idk, suk:, vuk:, ins:)
           @mutex.synchronize do
             identity = @identities.delete(old_idk.b)
@@ -98,14 +107,17 @@ module SQRL
           @mutex.synchronize { @superseded.key?(idk.b) }
         end
 
+        # (see SQRL::Server::IdentityStore#remove)
         def remove(idk)
           @mutex.synchronize { @identities.delete(idk.b) }
         end
 
+        # @return [Integer] number of active identities
         def count
           @mutex.synchronize { @identities.size }
         end
 
+        # @return [Array<Identity>] every active identity
         def all
           @mutex.synchronize { @identities.values.map(&:dup) }
         end
@@ -119,6 +131,7 @@ module SQRL
           @logins = {}
         end
 
+        # (see SQRL::Server::IdentityStore#create)
         def create(id, ip:, return_to:, expires_at:, link_user_ref: nil, created_at: Time.now)
           login = PendingLogin.new(id: id, ip: ip, return_to: return_to, expires_at: expires_at,
                                    link_user_ref: link_user_ref, created_at: created_at)
@@ -126,10 +139,12 @@ module SQRL
           login.dup
         end
 
+        # (see SQRL::Server::IdentityStore#find)
         def find(id)
           @mutex.synchronize { @logins[id]&.dup }
         end
 
+        # (see SQRL::Server::IdentityStore#update)
         def update(id, **attrs)
           @mutex.synchronize do
             login = @logins[id]
@@ -140,6 +155,7 @@ module SQRL
           end
         end
 
+        # (see SQRL::Server::PendingLoginStore#claim_cps_token)
         def claim_cps_token(token, now: Time.now)
           return nil if token.nil? || token.empty?
 
@@ -154,11 +170,14 @@ module SQRL
           end
         end
 
+        # Remove expired records.
+        # @return [Integer] number removed
         def prune!(now = Time.now)
           @mutex.synchronize { @logins.delete_if { |_, l| l.expired?(now) } }
           nil
         end
 
+        # @return [Integer] number of records held
         def size
           @mutex.synchronize { @logins.size }
         end

@@ -82,6 +82,7 @@ module SQRL
     # any connection and abort any authentication operation with any SQRL server which
     # includes TIF bits not defined" (On The Wire, tif).
     DEFINED_BITS = 0x3FF
+    # Every TIF bit that means the command did not succeed.
     ERROR_BITS = FUNCTION_NOT_SUPPORTED | TRANSIENT_ERROR | COMMAND_FAILED | CLIENT_FAILURE |
                  BAD_ID_ASSOCIATION | IDENTITY_SUPERSEDED
 
@@ -102,6 +103,7 @@ module SQRL
       new(str.hex)
     end
 
+    # @return [Tif] +value+ wrapped (a Tif is returned unchanged)
     def self.[](value)
       value.is_a?(Tif) ? value : new(value)
     end
@@ -137,10 +139,12 @@ module SQRL
       @value.to_s(16)
     end
 
+    # @return [Tif] bitwise OR with another Tif or Integer
     def |(other)
       Tif.new(@value | Tif[other].value)
     end
 
+    # @return [Tif] bitwise AND with another Tif or Integer
     def &(other)
       Tif.new(@value & Tif[other].value)
     end
@@ -150,19 +154,23 @@ module SQRL
       Tif.new(@value & ~flag)
     end
 
+    # @return [Integer] the raw flag bits
     def to_i
       @value
     end
 
+    # @return [Boolean] whether +other+ carries the same values
     def ==(other)
       other.is_a?(Tif) ? other.value == @value : other == @value
     end
     alias eql? ==
 
+    # @return [Integer] hash consistent with {#==}
     def hash
       @value.hash
     end
 
+    # @return [String] a short description with secret material redacted
     def inspect
       "#<SQRL::Tif 0x#{to_hex}>"
     end
@@ -171,11 +179,17 @@ module SQRL
 
   # Client commands.
   module Command
+    # Ask whether the server knows this identity.
     QUERY = :query
+    # Authenticate: log in, create the account or re-key it.
     IDENT = :ident
+    # Disable SQRL authentication for the account.
     DISABLE = :disable
+    # Re-enable SQRL authentication (needs +urs+).
     ENABLE = :enable
+    # Remove the SQRL association (needs +urs+).
     REMOVE = :remove
+    # Every command, in wire order.
     ALL = [QUERY, IDENT, DISABLE, ENABLE, REMOVE].freeze
 
     module_function
@@ -196,6 +210,7 @@ module SQRL
 
   # Client +opt=+ flags.
   class ClientOptions
+    # The +opt=+ flags, in wire order.
     FLAGS = %i[sqrlonly hardlock cps suk noiptest].freeze
 
     # Request that the site disable all non-SQRL authentication.
@@ -239,23 +254,28 @@ module SQRL
       set.empty? ? nil : set.join("~")
     end
 
+    # @return [self.class] an unfrozen copy
     def dup
       ClientOptions.new(**to_h)
     end
 
+    # @return [Hash] the values as a plain Hash
     def to_h
       FLAGS.to_h { |f| [f, public_send(f) ? true : false] }
     end
 
+    # @return [Boolean] whether +other+ carries the same values
     def ==(other)
       other.is_a?(ClientOptions) && other.to_h == to_h
     end
     alias eql? ==
 
+    # @return [Integer] hash consistent with {#==}
     def hash
       to_h.hash
     end
 
+    # @return [String] a short description with secret material redacted
     def inspect
       "#<SQRL::ClientOptions #{to_wire || "(none)"}>"
     end
@@ -315,11 +335,13 @@ module SQRL
       end
       s
     end
+    # @return [Boolean] whether +other+ carries the same values
 
     def ==(other)
       other.is_a?(Ask) && other.message == @message && other.buttons == @buttons && other.accept == @accept
     end
     alias eql? ==
+    # @return [Integer] hash consistent with {#==}
 
     def hash
       [@message, @buttons, @accept].hash
@@ -377,16 +399,21 @@ module SQRL
     # Value of an arbitrary parameter, or nil.
     def [](name)
       fetch(name.to_s)
+      # @return [Boolean] whether +other+ carries the same values
     end
 
+    # @return [Boolean] whether +other+ carries the same values
     def ==(other)
       other.is_a?(ServerResponse) && other.raw == @raw
     end
+    # @return [Integer] hash consistent with {#==}
     alias eql? ==
 
+    # @return [Integer] hash consistent with {#==}
     def hash
       @raw.hash
     end
+    # @return [String] a short description with secret material redacted
 
     def inspect
       "#<SQRL::ServerResponse tif=0x#{@tif.to_hex} nut=#{@nut} qry=#{@qry}>"

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+# Rails routing namespace, reopened to add +devise_sqrl+.
 module ActionDispatch
+  # Rails routing namespace.
   module Routing
     # Devise calls +devise_sqrl+ for every mapping whose model declares
     # +:sqrl_authenticatable+. The routes live under the mapping's path (+/users/sqrl+)

@@ -57,18 +57,28 @@ module SQRL
       SecureRandom.random_bytes(n)
     end
 
+    # Read a little-endian unsigned 16-bit integer.
+    # @param bytes [String]
+    # @param offset [Integer]
+    # @return [Integer]
     def le_u16(bytes, offset = 0)
       bytes.byteslice(offset, 2).unpack1("v")
     end
 
+    # Read a little-endian unsigned 32-bit integer.
+    # @param bytes [String]
+    # @param offset [Integer]
+    # @return [Integer]
     def le_u32(bytes, offset = 0)
       bytes.byteslice(offset, 4).unpack1("V")
     end
 
+    # @return [String] +value+ as 2 little-endian bytes
     def pack_le_u16(value)
       [value].pack("v")
     end
 
+    # @return [String] +value+ as 4 little-endian bytes
     def pack_le_u32(value)
       [value].pack("V")
     end

@@ -10,6 +10,7 @@ module SQRL
   class Session
     # A request ready to be POSTed.
     Request = Struct.new(:url, :body, :command, :client_text, keyword_init: true) do
+      # @return [String] a short description with secret material redacted
       def inspect
         "#<SQRL::Session::Request #{command} -> #{url}>"
       end
@@ -27,6 +28,7 @@ module SQRL
 
       def disabled? = disabled ? true : false
 
+      # @return [Boolean] whether +other+ carries the same values
       def ==(other)
         case other
         when Symbol then kind == other
@@ -35,6 +37,7 @@ module SQRL
         end
       end
 
+      # @return [String] a short description with secret material redacted
       def inspect
         extra = disabled ? " disabled" : ""
         extra += " (#{message})" if message
@@ -109,6 +112,7 @@ module SQRL
       @identity.previous_count.positive?
     end
 
+    # @return [Integer] number of previous identities the identity carries
     def previous_count
       @identity.previous_count
     end
@@ -282,6 +286,7 @@ module SQRL
     def ip_check_failed?
       !@last.nil? && @last.tif.value == Tif::COMMAND_FAILED
     end
+    # @return [String] a short description with secret material redacted
 
     def inspect
       "#<SQRL::Session #{@url.host} state=#{state.kind}>"

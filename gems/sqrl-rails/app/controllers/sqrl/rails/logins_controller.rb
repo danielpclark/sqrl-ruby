@@ -9,6 +9,7 @@ module SQRL
 
       layout "sqrl/rails/application"
 
+      # Render the stand-alone login page.
       def new
         @return_to = params[:return_to].presence
       end

@@ -182,3 +182,15 @@ store set passes the shared store contract spec from `sqrl-core`.
 With `on_unknown_identity = :link`, unknown identities are only accepted while a user is
 signed in; render `sqrl_login_block` on an authenticated settings page and the new
 identity is attached to `Current.user` (or whatever `current_user` returns).
+
+## Example and testing
+
+[`examples/rails-auth-app`](../../examples/rails-auth-app) is a Rails 8 application built
+with `rails generate authentication` followed by `rails generate sqrl:install`.
+`bundle exec rake spec:sqrl-rails` runs the engine, store, policy and generator specs
+against an in-gem dummy application; the `gemfiles/` directory runs them on Rails 7.1, 7.2
+and 8.0 as well.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

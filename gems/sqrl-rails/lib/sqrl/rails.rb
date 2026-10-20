@@ -4,6 +4,7 @@ require "rails"
 require "sqrl/core"
 require "sqrl/rack"
 
+# SQRL namespace, reopened for the Rails integration.
 module SQRL
   # SQRL login for Rails: an isolated engine serving the SQRL endpoint, status poll,
   # CPS callback and browser script; ActiveRecord-backed stores; a view helper that
@@ -17,11 +18,13 @@ module SQRL
   #   bin/rails generate sqrl:install
   #   bin/rails db:migrate
   module Rails
+    # Same as SQRL::VERSION; the gems release in lockstep.
     VERSION = SQRL::VERSION
 
     # Raised for configuration problems.
     class Error < SQRL::Error; end
 
+    # Paths of the engine's routes, relative to the mount point.
     ENGINE_PATHS = { cli: "/cli", status: "/status", callback: "/callback", login: "/login",
                      script: "/sqrl.js", identities: "/identities", refresh: "/refresh" }.freeze
 

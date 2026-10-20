@@ -45,11 +45,15 @@ module SQRL
         SQRL::Rack::LoginBlock.script_tag(src: sqrl_script_path).html_safe
       end
 
+      # @return [String] public path of the status poll
       def sqrl_status_path = SQRL::Rails.path_for(:status, script_name: sqrl_host_script_name)
       # The identity-management page of the engine (list and unlink SQRL identities).
       def sqrl_identities_path = SQRL::Rails.path_for(:identities, script_name: sqrl_host_script_name)
+      # @return [String] public path of the login callback
       def sqrl_callback_path = SQRL::Rails.path_for(:callback, script_name: sqrl_host_script_name)
+      # @return [String] public path of +sqrl.js+
       def sqrl_script_path = SQRL::Rails.path_for(:script, script_name: sqrl_host_script_name)
+      # @return [String] public path of the refresh endpoint
       def sqrl_refresh_path = SQRL::Rails.path_for(:refresh, script_name: sqrl_host_script_name)
 
       private

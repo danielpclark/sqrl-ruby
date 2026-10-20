@@ -197,6 +197,7 @@ module SQRL
         self.class.ephemeral(iuk)
       end
 
+      # @return [Integer] number of previous identities carried
       def previous_count = @unlocked.previous_count
 
       # 16 hex characters identifying the identity without revealing key material.
@@ -217,6 +218,7 @@ module SQRL
         @s4 ? @s4.to_text : Util.hex_encode(@iuk)
       end
 
+      # @return [String] a short description with secret material redacted
       def inspect
         "#<SQRL::Client::Identity fingerprint=#{fingerprint} iuk=#{iuk? ? "known" : "locked"} " \
           "previous=#{previous_count}#{" path=#{@path}" if @path}>"

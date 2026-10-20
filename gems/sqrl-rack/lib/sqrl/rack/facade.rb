@@ -35,17 +35,23 @@ module SQRL
         LoginBlock.unavailable(message: e.message, css_class: options.fetch(:css_class, "sqrl-login"))
       end
 
+      # @return [String] a +<script>+ tag loading +sqrl.js+ from this site
       def script_tag
         LoginBlock.script_tag(src: @endpoint.script_url(@request))
       end
 
+      # @return [String] the login URL as an SVG QR code (see {QR.svg})
       def qr_svg(**options)
         QR.svg(login_url.url, **options)
       end
 
+      # @return [String] see {Endpoint#status_url}
       def status_url = @endpoint.status_url(@request)
+      # @return [String] see {Endpoint#callback_url}
       def callback_url = @endpoint.callback_url(@request)
+      # @return [String] see {Endpoint#script_url}
       def script_url = @endpoint.script_url(@request)
+      # @return [String] see {Endpoint#refresh_url}
       def refresh_url = @endpoint.refresh_url(@request)
 
       # The SQRL identity record logged in to this browser session, or nil.
@@ -55,6 +61,7 @@ module SQRL
         @identity = @endpoint.current_identity(@request)
       end
 
+      # @return [String, nil] the logged-in identity key as base64url
       def idk_b64 = identity&.idk_b64
 
       def authenticated?

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Devise
+  # Devise's model-module namespace.
   module Models
     # Adds SQRL login to a Devise model.
     #
@@ -21,6 +22,7 @@ module Devise
         end
       end
 
+      # @return [Array<Symbol>] columns the module needs on the model (none)
       def self.required_fields(_klass)
         []
       end
@@ -98,6 +100,7 @@ module Devise
         ::SQRL::Util.b64u_decode(sqrl_identity_idk_b64(identity))
       end
 
+      # Class-level API added to the model.
       module ClassMethods
         # The record a SQRL identity belongs to, when it belongs to this model.
         #

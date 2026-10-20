@@ -6,6 +6,7 @@ require "sqrl/rails"
 
 module Devise
   module SQRL
+    # Generator namespace (+bin/rails generate devise:sqrl:install+).
     module Generators
       # `bin/rails generate devise:sqrl:install [MODEL]`
       #
@@ -28,10 +29,12 @@ module Devise
                                   desc: "Do not touch app/views/devise/sessions/new.html.erb"
         class_option :host, type: :string, default: nil, desc: "Public host for sqrl:// URLs (default: request host)"
 
+        # @return [String] the generator's name (+devise:sqrl:install+)
         def self.namespace(name = nil)
           name ? super : "devise:sqrl:install"
         end
 
+        # Copy the +create_sqrl_tables+ migration unless one exists.
         def copy_migration
           return if options[:skip_migration]
           if Dir[File.join(destination_root, "db/migrate/*_create_sqrl_tables.rb")].any?
@@ -41,6 +44,7 @@ module Devise
           migration_template "create_sqrl_tables.rb.tt", "db/migrate/create_sqrl_tables.rb"
         end
 
+        # Add +:sqrl_authenticatable+ to the model's +devise+ call (idempotent).
         def add_module_to_model
           path = "app/models/#{model_name.underscore}.rb"
           full = File.expand_path(path, destination_root)
@@ -58,10 +62,12 @@ module Devise
           end
         end
 
+        # Write +config/initializers/devise_sqrl.rb+.
         def create_initializer
           template "devise_sqrl.rb.tt", "config/initializers/devise_sqrl.rb"
         end
 
+        # Render the shared SQRL partial in +devise/sessions/new+ when it exists (idempotent).
         def add_partial_to_sessions_view
           return if options[:skip_views]
 
@@ -79,6 +85,7 @@ module Devise
           end
         end
 
+        # Print what to do next.
         def show_next_steps
           say <<~TEXT
 

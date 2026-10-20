@@ -9,6 +9,7 @@ module SQRL
 
       skip_forgery_protection
 
+      # The SQRL protocol endpoint: hands the signed POST to the handler and renders its reply.
       def create
         render_rack(sqrl_endpoint.cli(request))
       end

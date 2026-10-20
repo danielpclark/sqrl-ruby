@@ -12,12 +12,16 @@ module SQRL
     # The pending login id lives in the browser session under +session_key+; the
     # identity of a completed login is written under +identity_key+ by {#callback}.
     class Endpoint
+      # Default session key holding the pending-login id.
       SESSION_KEY = "sqrl.pending_login"
+      # Default session key holding the logged-in identity key (base64url).
       IDENTITY_KEY = "sqrl.identity"
 
       # What {#callback} returns when a login completes.
       Completion = Struct.new(:identity, :pending_login, :via, keyword_init: true) do
+        # @return [String] the identity key as base64url
         def idk_b64 = identity.idk_b64
+        # @return [String, nil] the same-site return path captured when the login page was issued
         def return_to = pending_login.return_to
         def cps? = via == :cps
       end
@@ -25,6 +29,7 @@ module SQRL
       attr_reader :handler, :config, :session_key, :identity_key, :status_path, :callback_path, :script_path,
                   :refresh_path
 
+      # Headers of a 429 answer.
       RATE_LIMITED_HEADERS = { "content-type" => "text/plain; charset=utf-8", "cache-control" => "no-store" }.freeze
 
       # @param handler [Server::Handler]
@@ -210,8 +215,11 @@ module SQRL
 
       # Browser-facing URLs, honouring the mount prefix (+SCRIPT_NAME+).
       def status_url(request) = prefixed(request, @status_path)
+      # @return [String] path of the callback for this request (mount prefix included)
       def callback_url(request) = prefixed(request, @callback_path)
+      # @return [String] path of +sqrl.js+ for this request (mount prefix included)
       def script_url(request) = prefixed(request, @script_path)
+      # @return [String] path of the refresh endpoint for this request (mount prefix included)
       def refresh_url(request) = prefixed(request, @refresh_path)
 
       # The client IP a request comes from.

@@ -18,6 +18,7 @@ module SQRL
     # {#fetch} is the bounded, thread-safe cache integrations keep their per-host handler
     # or endpoint in; a configured host never counts against the limit.
     class HostResolver
+      # Default number of distinct derived hosts the handler cache holds.
       DEFAULT_LIMIT = 16
 
       attr_reader :host, :scheme, :limit

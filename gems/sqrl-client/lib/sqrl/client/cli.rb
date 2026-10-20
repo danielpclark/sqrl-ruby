@@ -15,11 +15,16 @@ module SQRL
     # Exit codes: 0 success, 1 protocol failure (the site refused), 2 transport failure,
     # 3 usage error.
     class CLI
+      # Exit status: success.
       EXIT_OK = 0
+      # Exit status: the server refused (a TIF failure) or the identity could not be used.
       EXIT_PROTOCOL = 1
+      # Exit status: network or TLS failure.
       EXIT_TRANSPORT = 2
+      # Exit status: bad arguments.
       EXIT_USAGE = 3
 
+      # Help text.
       USAGE = <<~TEXT
         Usage: sqrl-client <command> [options]
 
@@ -68,6 +73,11 @@ module SQRL
           --ask-button N        button to answer asks with (default 1)
       TEXT
 
+      # Run the command line.
+      # @param argv [Array<String>]
+      # @param out [IO]
+      # @param err [IO]
+      # @return [Integer] exit status
       def self.run(argv = ARGV, out: $stdout, err: $stderr)
         new(out: out, err: err).run(argv)
       end

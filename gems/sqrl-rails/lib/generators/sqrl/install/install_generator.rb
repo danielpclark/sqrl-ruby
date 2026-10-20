@@ -3,7 +3,9 @@
 require "rails/generators"
 require "rails/generators/active_record"
 
+# Generator namespace (+bin/rails generate sqrl:install+).
 module Sqrl
+  # Generator namespace.
   module Generators
     # `bin/rails generate sqrl:install`
     #
@@ -22,12 +24,14 @@ module Sqrl
       class_option :mount, type: :string, default: "/sqrl", desc: "Where to mount the engine"
       class_option :user_model, type: :string, default: "User", desc: "Name of the user model"
 
+      # Copy the +create_sqrl_tables+ migration unless one exists.
       def copy_migration
         return if options[:skip_migration]
 
         migration_template "create_sqrl_tables.rb.tt", "db/migrate/create_sqrl_tables.rb"
       end
 
+      # Mount the engine in +config/routes.rb+ (idempotent).
       def mount_engine
         return if options[:skip_routes]
 
@@ -37,10 +41,12 @@ module Sqrl
         route line
       end
 
+      # Write +config/initializers/sqrl.rb+ with every option documented.
       def create_initializer
         template "initializer.rb.tt", "config/initializers/sqrl.rb"
       end
 
+      # Add +has_many :sqrl_identities+ to the user model (idempotent).
       def link_user_model
         path = user_model_path
         full = File.expand_path(path, destination_root)
@@ -63,6 +69,7 @@ module Sqrl
                       "SQRL::Rails::PasswordPolicy::Passwords")
       end
 
+      # Append the login block to +sessions/new+ when that view exists (idempotent).
       def add_login_block_to_sessions_view
         return if options[:skip_views]
 
@@ -77,6 +84,7 @@ module Sqrl
         end
       end
 
+      # Print what to do next.
       def show_next_steps
         say <<~TEXT
 

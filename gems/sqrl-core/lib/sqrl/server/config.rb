@@ -9,7 +9,9 @@ module SQRL
     #     c.ask = SQRL::Ask.new(message: "Log in to Example?", buttons: [{ label: "Yes" }, { label: "No" }])
     #   end
     class Config
+      # Accepted values of +on_unknown_identity+.
       UNKNOWN_IDENTITY_POLICIES = %i[create link refuse].freeze
+      # URL schemes a server can issue: +sqrl+ (HTTPS) or, in testing mode only, +qrl+.
       SCHEMES = %w[sqrl qrl].freeze
 
       # Host (with optional port) placed in issued +sqrl://+ URLs. Must be the public host.
@@ -172,6 +174,7 @@ module SQRL
       # Whether the site issues +qrl://+ (plain http) URLs; see +insecure_http+.
       def insecure_http? = @insecure_http ? true : false
 
+      # Warning logged once when +insecure_http+ is enabled.
       INSECURE_WARNING = "[sqrl] insecure_http is a loopback-only testing mode; real SQRL clients require " \
                          "sqrl:// over HTTPS"
       @insecure_warned = false
@@ -183,6 +186,7 @@ module SQRL
           @insecure_warning_mutex.synchronize { @insecure_warned = false }
         end
 
+        # Log {INSECURE_WARNING} once per process.
         # @api private
         def warn_insecure_once(logger)
           @insecure_warning_mutex.synchronize do
@@ -199,6 +203,7 @@ module SQRL
         "#{http_scheme}://#{@host}"
       end
 
+      # @return [Time] the configured clock's current time
       def now
         @clock.call
       end
@@ -225,6 +230,7 @@ module SQRL
 
       private
 
+      # @return [void] see {Config.warn_insecure_once}
       def warn_insecure_once
         self.class.warn_insecure_once(@logger)
       end

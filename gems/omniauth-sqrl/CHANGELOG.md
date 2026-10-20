@@ -1,5 +1,16 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 — 2026-10-20
 
-- Initial release.
+First release.
+
+- `provider :sqrl`: request phase renders the login page; the strategy serves the SQRL
+  endpoint, status poll, script and refresh routes itself; the callback builds an auth hash
+  keyed by the identity key with `extra["sqrl"]` facts (created, re-keyed from, options,
+  disabled, via).
+- Failure keys `invalid_credentials` and `sqrl_disabled`; `link_user_ref` for account
+  linking; `info:` callable; test mode supported.
+- Host handling (`allowed_hosts`, bounded cache), rate-limit hooks, `insecure_http`
+  testing mode, `poll_requires_ip_match` (off by default).
+- Works with `devise :omniauthable`.
+- Requires Ruby 3.1+, OmniAuth 2.x.

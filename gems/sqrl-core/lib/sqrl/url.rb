@@ -35,6 +35,7 @@ module SQRL
     # Site key string used for key derivation.
     attr_reader :site_key
 
+    # Hosts for which the plain-http +qrl://+ testing scheme is tolerated at all.
     LOOPBACK_HOSTS = %w[localhost 127.0.0.1 [::1]].freeze
 
     # Parse a +sqrl://+ (or loopback-only +qrl://+) URL.
@@ -236,19 +237,23 @@ module SQRL
       false
     end
 
+    # @return [String] the URL as received
     def to_s
       @original
     end
 
+    # @return [Boolean] whether +other+ carries the same values
     def ==(other)
       other.is_a?(URL) && other.original == @original
     end
     alias eql? ==
 
+    # @return [Integer] hash consistent with {#==}
     def hash
       @original.hash
     end
 
+    # @return [String] a short description with secret material redacted
     def inspect
       "#<SQRL::URL #{@original}>"
     end

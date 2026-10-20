@@ -7,6 +7,7 @@ require_relative "client/transport"
 require_relative "client/discovery"
 require_relative "client/agent"
 
+# SQRL namespace, reopened for the client.
 module SQRL
   # A bot-capable SQRL client: everything a script, a test suite or an automated service
   # needs to log in to a SQRL-enabled website without a browser or a human.

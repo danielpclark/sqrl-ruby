@@ -3,7 +3,9 @@
 require "roda"
 require "sqrl/rack"
 
+# Roda namespace, reopened to add the +:sqrl+ plugin.
 class Roda
+  # Roda's plugin namespace.
   module RodaPlugins
     # SQRL login for Roda.
     #
@@ -57,6 +59,7 @@ class Roda
         opts
       end
 
+      # Class-level API: +plugin :sqrl+ options and the +sqrl_on_login+ hook.
       module ClassMethods
         # Register a block called after every successful SQRL login with
         # +(identity, env, pending_login)+.
@@ -75,19 +78,28 @@ class Roda
           env["sqrl.server"] or raise ::SQRL::Rack::Error, "SQRL middleware did not run for this request"
         end
 
+        # @return [String] a fresh +sqrl://+ login URL for this request
         def sqrl_login_url(**options) = sqrl.login_url(**options).url
+        # @return [String] the login URL as an SVG QR code
         def sqrl_qr_svg(**options) = sqrl.qr_svg(**options)
+        # @return [String] a +<script>+ tag loading +sqrl.js+
         def sqrl_script_tag = sqrl.script_tag
+        # @return [String] the complete login block markup
         def sqrl_login_block(**options) = sqrl.login_block(**options)
         def sqrl_authenticated? = sqrl.authenticated?
+        # @return [SQRL::Server::Identity, nil] the identity logged in through SQRL in this session
         def current_sqrl_identity = sqrl.identity
+        # Forget the SQRL identity held in the session.
+        # @return [void]
         def sqrl_logout! = sqrl.logout!
       end
 
       # The same helpers on the request object, for people who route everything through +r+.
       module RequestMethods
+        # @return [SQRL::Rack::Facade] the request-scoped facade
         def sqrl = scope.sqrl
         def sqrl_authenticated? = scope.sqrl_authenticated?
+        # @return [SQRL::Server::Identity, nil] the identity logged in through SQRL in this session
         def current_sqrl_identity = scope.current_sqrl_identity
       end
     end

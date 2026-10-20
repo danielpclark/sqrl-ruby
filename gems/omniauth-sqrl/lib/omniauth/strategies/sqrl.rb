@@ -5,6 +5,7 @@ require "cgi"
 require "json"
 
 module OmniAuth
+  # OmniAuth's strategy namespace.
   module Strategies
     # SQRL (Secure Quick Reliable Login) as an OmniAuth provider.
     #
@@ -40,9 +41,13 @@ module OmniAuth
     class SQRL
       include OmniAuth::Strategy
 
+      # Session key holding the pending-login id.
       SESSION_KEY = "omniauth.sqrl.pending_login"
+      # Session key holding the logged-in identity key.
       IDENTITY_KEY = "omniauth.sqrl.identity"
+      # Seconds the created/re-keyed facts of a pending login are remembered.
       FACTS_TTL = 3600
+      # Maximum number of remembered fact records.
       FACTS_LIMIT = 10_000
 
       option :name, "sqrl"
@@ -81,6 +86,7 @@ module OmniAuth
       # A {::SQRL::Rack::Endpoint} that remembers, per pending login, whether the
       # +ident+ created the account or re-keyed it, so the callback can report it.
       class Endpoint < ::SQRL::Rack::Endpoint
+        # Cli on the OmniAuth strategy; same contract as +SQRL::Rack::Endpoint#cli+.
         def cli(request)
           result = handler.handle(nut: request.GET["nut"].to_s, body: form_body(request), ip: client_ip(request))
           SQRL.record_facts(result) if result.authenticated?
@@ -221,8 +227,11 @@ module OmniAuth
 
       # Paths relative to the mount point (without +SCRIPT_NAME+).
       def cli_path = options.cli_path || "#{path_prefix}/#{name}/cli"
+      # @return [String] full path of the status poll
       def status_path = options.status_path || "#{path_prefix}/#{name}/status"
+      # @return [String] full path of +sqrl.js+
       def script_path = options.script_path || "#{path_prefix}/#{name}/sqrl.js"
+      # @return [String] full path of the refresh endpoint
       def refresh_path = options.refresh_path || "#{path_prefix}/#{name}/refresh"
 
       # The request-scoped {Endpoint}.
@@ -249,6 +258,7 @@ module OmniAuth
         end
       end
 
+      # @return [SQRL::Server::Config] the protocol configuration for this request's host
       def server_config(host, scheme)
         ::SQRL::Server::Config.new(
           host: host, scheme: scheme, insecure_http: options.insecure_http ? true : false,

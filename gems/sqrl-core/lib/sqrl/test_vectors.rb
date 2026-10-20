@@ -15,8 +15,11 @@ module SQRL
   #   encodings validated against the GRC SQRL client's export.
   # * The open-source Android SQRL client's test code: a complete S4 identity file.
   module TestVectors
+    # Password of GRC's Spec-Vectors-Identity.
     SPEC_PASSWORD = "Zingo-Bingo-Slingo-Dingo"
+    # Rescue code of the Spec-Vectors-Identity.
     SPEC_RESCUE_CODE = "1198-8748-7132-2838-8318-7570"
+    # The Spec-Vectors-Identity as a textual (base56) identity.
     SPEC_TEXTUAL = <<~TEXT.chomp
       KKcC 3BaX akxc Xwbf xki7
       k7mF GHhg jQes gzWd 6TrK
@@ -25,31 +28,49 @@ module SQRL
       QuXt CkTC y6gc qG8n Xfj9
       bHDA 422
     TEXT
+    # Identity Master Key of the Spec-Vectors-Identity (hex).
     SPEC_IMK = "2E471E106D758F3C7B242C8A4A0513A7192D8EDDB917BDD019F19E38ED292BA8"
     # Per-site values for sqrl.grc.com from SQRL.log.
     SPEC_SITE = "sqrl.grc.com"
+    # Per-site Ed25519 seed for sqrl.grc.com (hex).
     SPEC_SITE_SEED = "7A550E0797EF9E617D0E544EBE27FDE749D9EC2472BF9618DEE4C063EEFD51B5"
+    # Per-site public key for sqrl.grc.com (hex).
     SPEC_SITE_PUBLIC_KEY = "DA3801F9C47E1279588253DD193A0EB9C29823A083EAC52A7F893D32D92E897B"
+    # idk= (base64url) for sqrl.grc.com.
     SPEC_SITE_IDK = "2jgB-cR-EnlYglPdGToOucKYI6CD6sUqf4k9MtkuiXs"
 
     # SQRL.log transaction 1 and 2 (the query and ident against sqrl.grc.com).
     SPEC_URL = "sqrl://sqrl.grc.com/cli.sqrl?nut=fXkb4MBToCm7&can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vZGVtbw"
+    # The can= cancel URL from SQRL.log.
     SPEC_CANCEL_URL = "https://sqrl.grc.com/demo"
+    # Decoded client= of the query request in SQRL.log.
     SPEC_QUERY_CLIENT = "ver=1\r\ncmd=query\r\nidk=#{SPEC_SITE_IDK}\r\nopt=cps~suk\r\n".freeze
+    # Start of the base64url client= of the query request.
     SPEC_QUERY_CLIENT_B64_PREFIX = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPTJqZ0ItY1ItRW5sWWdsUGRHVG9PdWNLWUk2Q0Q2c1VxZjRrOU10a3Vp"
+    # Fragment of the base64url server= of the query request.
     SPEC_QUERY_SERVER_B64_FRAGMENT = "&server=c3FybDovL3NxcmwuZ3JjLmNvbS9jbGkuc3FybD9udXQ9ZlhrYjRNQlRvQ203JmNhbj1hSFIwY0hNNkx5OXpj"
+    # ids= signature of the query request (base64url).
     SPEC_QUERY_IDS = "qXFikmg_jZQJ7GjKCA_zBwzras2QyQAwWw2s80ZcUHmLLBUN5_hPuFtB6ZoV5wUcNs5XmSrqg1FQwGA6RlVBAQ"
+    # Decoded first server reply from SQRL.log.
     SPEC_REPLY1 = "ver=1\r\nnut=1WM9lfF1ST-z\r\ntif=5\r\nqry=/cli.sqrl?nut=1WM9lfF1ST-z\r\n" \
                   "suk=BMFDm7bPlsQojuJsoDTvlS1McnwgScvktF84vLjscGk\r\n"
+    # Start of the base64url first reply.
     SPEC_REPLY1_B64_PREFIX = "dmVyPTENCm51dD0xV005bGZGMVNULXoNCnRpZj01DQpxcnk9L2NsaS5zcXJsP251dD0xV005bGZGMVNULXoN"
+    # suk= carried by the first reply.
     SPEC_REPLY1_SUK = "BMFDm7bPlsQojuJsoDTvlS1McnwgScvktF84vLjscGk"
+    # POST URL of the ident request.
     SPEC_IDENT_URL = "https://sqrl.grc.com/cli.sqrl?nut=1WM9lfF1ST-z"
+    # Decoded client= of the ident request in SQRL.log.
     SPEC_IDENT_CLIENT = "ver=1\r\ncmd=ident\r\nidk=#{SPEC_SITE_IDK}\r\nopt=cps~suk\r\n".freeze
+    # Start of the base64url client= of the ident request.
     SPEC_IDENT_CLIENT_B64_PREFIX = "client=dmVyPTENCmNtZD1pZGVudA0KaWRrPTJqZ0ItY1ItRW5sWWdsUGRHVG9PdWNLWUk2Q0Q2c1VxZjRrOU10a3Vp"
+    # ids= signature of the ident request (base64url).
     SPEC_IDENT_IDS = "kQI05IpE_cu4u0mf7jymbap09hmS6ZCWjBGKUYnSNVRTXPbreTvDWHKNbSkUlQT2bx3wXwW3cCLBD0Qedd64AA"
+    # Decoded second server reply from SQRL.log.
     SPEC_REPLY2 = "ver=1\r\nnut=BEFAI1tJYfBm\r\ntif=5\r\nqry=/cli.sqrl?nut=BEFAI1tJYfBm\r\n" \
                   "suk=BMFDm7bPlsQojuJsoDTvlS1McnwgScvktF84vLjscGk\r\n" \
                   "url=https://sqrl.grc.com/auth.test?4hVTe9LGHhMTuxz_mm6vRc_q\r\n"
+    # The CPS url= from SQRL.log.
     SPEC_CPS_URL = "https://sqrl.grc.com/auth.test?4hVTe9LGHhMTuxz_mm6vRc_q"
 
     # EnScrypt vectors: [password, salt hex, iterations, expected hex].
@@ -82,8 +103,10 @@ module SQRL
       "FEFEFE" => "GuAh3n", "FFFFFF" => "9tXh3W",
       "0102030405060708090A0B0C0D0E0F10" => "tG5vDbjTXT2zfJ5cMfvg3A62d"
     }.freeze
+    # Base56 example: 80 random bytes (hex).
     BASE56_80_HEX = "0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2021222324252627" \
                     "28292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F404142434445464748494A4B4C4D4E4F50"
+    # Base56 example: the 80 bytes as GRC's client exports them.
     BASE56_80_TEXT = <<~TEXT.chomp
       b6w8 RYMv S427 Gtt5 sXBj
       UB5n vHZH PbHr uAM9 MgUR
@@ -92,8 +115,10 @@ module SQRL
       rU9N Bn6P qcY9 HXKt ybEC
       Sdh9 R22r SjAd 48i2 Y
     TEXT
+    # Base56 example: 87 random bytes (hex).
     BASE56_87_HEX = "18A2D975F61A3B6F1975FA2A9E3FBA2C7BE73732A0E34F006328E4BD938CFB6E292A50845C5A6B83F769" \
                     "7EAC8A49BF97221C2F06C1F4B251BDB865AF1E1E28E62D635959BEF7927CD658A7C2CA1AD5570DC6C066BA6EAF"
+    # Base56 example: the 87 bytes as GRC's client exports them.
     BASE56_87_TEXT = <<~TEXT.chomp
       sMrK xrbJ dHz5 s3mu EGWw
       RjWM UbAV MMsq SwMM R7C6
@@ -114,11 +139,14 @@ module SQRL
                            "419a63885a663125a600e5486c42b38f708c1094ced1ab0b0050137f6df449caf78581fec678408a804caf74" \
                            "f91c490002005528fc85e3e36866a85574146fe7776d09cf0000004a4e12277dd48366fc1f335dd37188bbcb" \
                            "a02bc32a12aef0188f5e83593665518483d638b80051c2b4b013491eb06835"
+    # Password of the Android client's test identity file.
     ANDROID_PASSWORD = "Testing1234"
+    # Rescue code of the Android client's test identity file.
     ANDROID_RESCUE_CODE = "7276-0587-2230-1119-8559-3839"
 
     # RFC 7748 X25519 base-point vector.
     X25519_ALICE_PRIVATE = "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a"
+    # RFC 7748 X25519 test vector: Alice's public key (hex).
     X25519_ALICE_PUBLIC = "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a"
   end
 end

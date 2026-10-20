@@ -7,6 +7,7 @@ module SQRL
     class RefreshController < ApplicationController
       include RateLimited
 
+      # Issue a fresh login URL for the browser's session as JSON (used by +SQRL.refresh+).
       def show
         render_rack(sqrl_endpoint.refresh(request))
       end

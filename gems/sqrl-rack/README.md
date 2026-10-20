@@ -5,6 +5,12 @@ the browser's status poll and the login callback; a Sinatra extension with view 
 the browser-side `sqrl.js`; and QR code rendering. Built on
 [`sqrl-core`](../sqrl-core).
 
+## Install
+
+```ruby
+gem "sqrl-rack"   # require "sqrl/rack", "sinatra/sqrl" or plugin :sqrl (Roda)
+```
+
 ## Rack
 
 ```ruby
@@ -174,4 +180,15 @@ element dispatches `sqrl:cps-detected`, `sqrl:authenticated` (`detail.next`),
    pending login's `return_to` or `after_login`.
 
 See [`examples/rack-app`](../../examples/rack-app) and
-[`examples/sinatra-app`](../../examples/sinatra-app).
+[`examples/sinatra-app`](../../examples/sinatra-app). and [`examples/roda-app`](../../examples/roda-app).
+
+## Testing
+
+`bundle exec rake spec:sqrl-rack` runs the middleware, Sinatra and Roda specs with
+Rack::Test, driving the client side with `SQRL::Session`; the repository's integration suite
+boots the three example apps over HTTPS and runs the `sqrl-client` conformance suite and a
+headless browser against them.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

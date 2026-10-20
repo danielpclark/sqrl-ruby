@@ -37,8 +37,10 @@ module SQRL
       def authenticated? = authenticated ? true : false
       def created? = created ? true : false
       def rekeyed? = !rekeyed_from.nil?
+      # @return [String, nil] the identity key as base64url
       def idk_b64 = idk && Util.b64u_encode(idk)
 
+      # @return [String] a short description with secret material redacted
       def inspect
         "#<SQRL::Server::Result #{command || "?"} tif=0x#{tif.to_hex} authenticated=#{authenticated?}>"
       end
@@ -142,16 +144,19 @@ module SQRL
         nil
       end
 
+      # A fresh, unpredictable nut (12 random bytes plus a counter).
       # @api private
       def new_nut
         Util.b64u_encode(Util.random_bytes(12))
       end
 
+      # A fresh pending-login id (random, base64url).
       # @api private
       def new_id
         Util.b64u_encode(Util.random_bytes(18))
       end
 
+      # A fresh one-time CPS token (32 random bytes, base64url).
       # @api private
       def new_token
         Util.b64u_encode(Util.random_bytes(32))
@@ -182,6 +187,8 @@ module SQRL
           @result = Result.new(authenticated: false, created: false)
         end
 
+        # Execute the transaction: nut lookup, verification, command, response.
+        # @return [Result]
         def run
           record = @stores.nuts.consume(@nut, now: @now)
           return transient_error unless record

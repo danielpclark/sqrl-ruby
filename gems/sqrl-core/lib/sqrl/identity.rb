@@ -20,14 +20,24 @@ module SQRL
 
     module_function
 
+    # Identity Master Key = EnHash(IUK).
+    # @param iuk [String] 32 bytes
+    # @return [String] 32 bytes
     def imk_from_iuk(iuk)
       Crypto.enhash(iuk)
     end
 
+    # Identity Lock Key = X25519(IUK, basepoint).
+    # @param iuk [String] 32 bytes
+    # @return [String] 32 bytes
     def ilk_from_iuk(iuk)
       Crypto.x25519_base(iuk)
     end
 
+    # Per-site Ed25519 seed = HMAC-SHA256(key = IMK, msg = site key).
+    # @param imk [String] 32 bytes
+    # @param site_key [String] see {SQRL::URL#site_key_bytes}
+    # @return [String] 32 bytes
     def site_seed(imk, site_key)
       Crypto.hmac_sha256(imk, site_key)
     end
@@ -71,6 +81,9 @@ module SQRL
       new(Identity.imk_from_iuk(iuk), Identity.ilk_from_iuk(iuk), previous_iuks)
     end
 
+    # Per-site Ed25519 seed for the current identity.
+    # @param site_key [String]
+    # @return [String] 32 bytes
     def site_seed(site_key)
       Identity.site_seed(@imk, site_key)
     end
@@ -80,6 +93,7 @@ module SQRL
       Crypto.ed25519_public(site_seed(site_key))
     end
 
+    # @return [Integer] number of previous identities available for +pidk+
     def previous_count
       @previous_iuks.length
     end
@@ -120,6 +134,7 @@ module SQRL
       Util.hex_encode(Crypto.sha256("sqrl-fingerprint#{@imk}"))[0, 16]
     end
 
+    # @return [String] a short description with secret material redacted
     def inspect
       "#<SQRL::UnlockedIdentity fingerprint=#{fingerprint} previous=#{previous_count}>"
     end

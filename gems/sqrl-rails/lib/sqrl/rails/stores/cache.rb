@@ -2,6 +2,7 @@
 
 module SQRL
   module Rails
+    # Store implementations shipped with the Rails integration.
     module Stores
       # The three {SQRL::Server} store interfaces on an +ActiveSupport::Cache::Store+, for
       # applications that keep short-lived login state in Redis or Memcached rather than
@@ -28,6 +29,7 @@ module SQRL
       # or delete atomically across them, so they are refused in production unless
       # +allow_unsafe: true+ is passed.
       module Cache
+        # Cache store classes without an atomic delete; refused in production.
         UNSAFE_STORES = %w[ActiveSupport::Cache::FileStore ActiveSupport::Cache::MemoryStore
                            ActiveSupport::Cache::NullStore].freeze
 
@@ -57,9 +59,13 @@ module SQRL
         module Codec
           module_function
 
+          # @return [String, nil] binary bytes as base64url
           def bin(bytes) = bytes.nil? ? nil : SQRL::Util.b64u_encode(bytes.b)
+          # @return [String, nil] binary bytes from base64url
           def unbin(text) = text.nil? ? nil : SQRL::Util.b64u_decode(text)
+          # @return [Integer, nil] a Time as epoch seconds
           def time(value) = value&.to_i
+          # @return [Time, nil] a Time from epoch seconds
           def untime(value) = value.nil? ? nil : Time.at(value.to_i)
         end
 
@@ -86,6 +92,7 @@ module SQRL
 
         # @see SQRL::Server::NutStore
         class NutStore < Base
+          # Issue on the cache store; same contract as +SQRL::Server::NutStore#issue+.
           def issue(nut:, pending_login_id:, expected_server:, ip:, bound_idk:, expires_at:)
             record = SQRL::Server::NutRecord.new(nut: nut, pending_login_id: pending_login_id,
                                                  expected_server: expected_server, ip: ip, bound_idk: bound_idk,
@@ -94,6 +101,7 @@ module SQRL
             record
           end
 
+          # Consume on the cache store; same contract as +SQRL::Server::NutStore#consume+.
           def consume(nut, now: Time.now)
             return nil if nut.nil? || nut.empty?
 
@@ -136,6 +144,7 @@ module SQRL
             @ttl = ttl
           end
 
+          # Find on the cache store; same contract as +SQRL::Server::IdentityStore#find+.
           def find(idk)
             data = @cache.read(key("id", Codec.bin(idk)))
             data && load(data)
@@ -150,6 +159,7 @@ module SQRL
             identity
           end
 
+          # Update on the cache store; same contract as +SQRL::Server::IdentityStore#update+.
           def update(idk, **attrs)
             identity = find(idk)
             return nil unless identity
@@ -159,6 +169,7 @@ module SQRL
             identity
           end
 
+          # Rekey on the cache store; same contract as +SQRL::Server::IdentityStore#rekey+.
           def rekey(old_idk, new_idk, suk:, vuk:, ins:)
             identity = find(old_idk)
             return nil unless identity
@@ -177,6 +188,7 @@ module SQRL
             @cache.exist?(key("superseded", Codec.bin(idk)))
           end
 
+          # Remove on the cache store; same contract as +SQRL::Server::IdentityStore#remove+.
           def remove(idk)
             identity = find(idk)
             return nil unless identity
@@ -206,6 +218,7 @@ module SQRL
 
         # @see SQRL::Server::PendingLoginStore
         class PendingLoginStore < Base
+          # Create on the cache store; same contract as +SQRL::Server::PendingLoginStore#create+.
           def create(id, ip:, return_to:, expires_at:, link_user_ref: nil, created_at: Time.now)
             login = SQRL::Server::PendingLogin.new(id: id, ip: ip, return_to: return_to, expires_at: expires_at,
                                                    link_user_ref: link_user_ref, created_at: created_at)
@@ -213,6 +226,7 @@ module SQRL
             login
           end
 
+          # Find on the cache store; same contract as +SQRL::Server::IdentityStore#find+.
           def find(id)
             return nil if id.nil?
 
@@ -224,6 +238,7 @@ module SQRL
             login.expires_at && login.expires_at <= Time.now ? nil : login
           end
 
+          # Update on the cache store; same contract as +SQRL::Server::IdentityStore#update+.
           def update(id, **attrs)
             login = find(id)
             return nil unless login
@@ -240,6 +255,7 @@ module SQRL
             login
           end
 
+          # Claim cps token on the cache store; same contract as +SQRL::Server::PendingLoginStore#claim_cps_token+.
           def claim_cps_token(token, now: Time.now)
             return nil if token.nil? || token.empty?
 

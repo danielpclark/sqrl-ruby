@@ -4,7 +4,9 @@ module SQRL
   module Rails
     # The default sign-in adapter and redirect resolution.
     module SignIn
+      # Session key used by the plain-session fallback.
       SESSION_USER_KEY = :user_id
+      # Session key holding the user's class name in the plain-session fallback.
       SESSION_USER_TYPE_KEY = :sqrl_user_type
 
       module_function

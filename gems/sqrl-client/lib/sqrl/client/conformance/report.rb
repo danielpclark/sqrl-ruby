@@ -9,10 +9,12 @@ module SQRL
         def failed? = status == :failed
         def skipped? = status == :skipped
 
+        # @return [Hash] the values as a plain Hash
         def to_h
           { name: name, group: group, status: status, message: message, duration: duration&.round(3) }
         end
 
+        # @return [String] one line per case
         def to_s
           mark = { passed: "PASS", failed: "FAIL", skipped: "SKIP" }[status]
           line = "#{mark}  #{group}/#{name}"
@@ -33,31 +35,39 @@ module SQRL
           @finished_at = nil
         end
 
+        # Record a finished case.
         # @api private
         def <<(kase)
           @cases << kase
           self
         end
 
+        # Mark the run complete and record its duration.
         # @api private
         def finish!
           @finished_at = Time.now
           self
         end
 
+        # @return [Array<Case>] cases that passed
         def passed = @cases.select(&:passed?)
+        # @return [Array<Case>] cases that failed
         def failed = @cases.select(&:failed?)
+        # @return [Array<Case>] cases that were skipped
         def skipped = @cases.select(&:skipped?)
 
         # True when nothing failed (skips do not count against the server).
         def passed? = failed.empty?
 
+        # @return [Float, nil] seconds the run took
         def duration = ((@finished_at || Time.now) - @started_at)
 
+        # @return [String] one-line totals
         def summary
           "#{passed.size} passed, #{failed.size} failed, #{skipped.size} skipped in #{duration.round(1)}s"
         end
 
+        # @return [String] one line per case
         def to_s
           lines = ["SQRL conformance: #{@login_url}"]
           lines.concat(@cases.map(&:to_s))
@@ -65,6 +75,7 @@ module SQRL
           lines.join("\n")
         end
 
+        # @return [Hash] the values as a plain Hash
         def to_h
           { login_url: @login_url, summary: summary, passed: passed?, cases: @cases.map(&:to_h) }
         end

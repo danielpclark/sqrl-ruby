@@ -21,10 +21,17 @@ module SQRL
 
     module_function
 
+    # SHA-256 digest.
+    # @param data [String] bytes
+    # @return [String] 32 binary bytes
     def sha256(data)
       OpenSSL::Digest.new("SHA256").digest(data)
     end
 
+    # HMAC-SHA256.
+    # @param key [String] key bytes
+    # @param data [String] message bytes
+    # @return [String] 32 binary bytes
     def hmac_sha256(key, data)
       OpenSSL::HMAC.digest("SHA256", key, data)
     end
@@ -87,6 +94,7 @@ module SQRL
       [acc.pack("C*"), iterations]
     end
 
+    # @return [Integer] a monotonic clock in milliseconds (the default +now_ms+ for {enscrypt_duration})
     def monotonic_ms
       (Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000).to_i
     end

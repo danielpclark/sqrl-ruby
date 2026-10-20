@@ -99,3 +99,14 @@ applications keep using `omniauth-rails_csrf_protection`; a Sinatra application 
 
 `OmniAuth.config.test_mode = true` with `OmniAuth.config.mock_auth[:sqrl]` short-circuits
 the flow exactly like any other strategy.
+
+## Example and testing
+
+[`examples/omniauth-app`](../../examples/omniauth-app) is a Sinatra application using the
+strategy; the repository's integration suite boots it over HTTPS and runs the conformance
+suite against it. `bundle exec rake spec:omniauth-sqrl` runs the strategy specs with
+Rack::Test.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

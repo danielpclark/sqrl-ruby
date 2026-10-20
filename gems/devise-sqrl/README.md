@@ -150,4 +150,9 @@ result = agent.login("http://127.0.0.1:3000/users/sign_in")
 result.authenticated? # => true; result.cookies carries the Devise session
 ```
 
-See `examples/devise-app` for a complete application.
+See [`examples/devise-app`](../../examples/devise-app) for a complete application;
+`bundle exec rake spec:devise-sqrl` runs this gem's specs against an in-gem dummy app.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

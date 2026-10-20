@@ -20,13 +20,17 @@ module SQRL
     module Discovery
       # What was found on a page.
       Result = Struct.new(:sqrl_url, :status_url, :source, :page_url, keyword_init: true) do
+        # @return [String] a short description with secret material redacted
         def inspect
           "#<SQRL::Client::Discovery::Result #{sqrl_url} (#{source})>"
         end
       end
 
+      # A +localhost:25519/<base64url>+ CPS-style link.
       CPS_LINK = %r{\Ahttps?://(?:localhost|127\.0\.0\.1):25519/([A-Za-z0-9_-]+)\z}i
+      # A bare +sqrl://+ (or +qrl://+) URL in text.
       SQRL_URL = %r{\b(s?qrl://[^\s"'<>\\]+)}i
+      # Builds a regexp matching an HTML attribute by name.
       ATTR = ->(name) { /#{name}\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i }
 
       module_function
@@ -84,6 +88,7 @@ module SQRL
         nil
       end
 
+      # @return [String, nil] the +data-sqrl-status+ URL, resolved against the page
       def status_url(html, base_url)
         raw = attribute_value(html, "data-sqrl-status")
         return nil if raw.nil? || raw.empty?
@@ -94,25 +99,30 @@ module SQRL
         nil
       end
 
+      # @return [Array<String>] every +href+ value in the page
       def hrefs(html)
         html.scan(/<a\b[^>]*>/i).filter_map { |tag| attribute_in_tag(tag, "href") }
       end
 
+      # @return [String, nil] a matched attribute value, unquoted
       def attribute_value(html, name)
         tag = html[/<[^>]*\b#{Regexp.escape(name)}\s*=[^>]*>/i]
         tag && attribute_in_tag(tag, name)
       end
 
+      # @return [String, nil] an attribute's value on the first tag carrying another attribute
       def attribute_on(html, tag_regex, name)
         tag = html[tag_regex]
         tag && attribute_in_tag(tag, name)
       end
 
+      # @return [String, nil] an attribute's value inside one tag
       def attribute_in_tag(tag, name)
         m = tag.match(ATTR.call(Regexp.escape(name)))
         m && (m[1] || m[2] || m[3])
       end
 
+      # @return [String] HTML entities decoded
       def unescape(str)
         str.gsub("&amp;", "&").gsub("&quot;", '"').gsub("&#39;", "'").gsub("&lt;", "<").gsub("&gt;", ">")
       end

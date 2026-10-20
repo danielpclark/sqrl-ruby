@@ -7,6 +7,7 @@ module SQRL
       # A public static script; Rails' cross-origin JavaScript check does not apply.
       skip_forgery_protection
 
+      # Serve +sqrl.js+ with an ETag.
       def script
         status, headers, body = sqrl_endpoint.script(request)
         headers.each { |k, v| response.set_header(k, v) }

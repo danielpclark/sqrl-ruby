@@ -68,12 +68,14 @@ module SQRL
       def known? = state.known?
       def disabled? = state.disabled?
 
+      # @return [Hash] a JSON-friendly summary (no secrets)
       def to_h
         { command: command, sqrl_url: sqrl_url, state: state.kind, disabled: state.disabled?, tif: tif&.to_hex,
           idk: idk, authenticated: authenticated?, created: created?, rekeyed: rekeyed?, cps_url: cps_url,
           landing_status: landing&.status, landing_url: landing&.final_url, ask: ask&.message, button: button }
       end
 
+      # @return [String] a short description with secret material redacted
       def inspect
         "#<SQRL::Client::LoginResult #{command} #{state.kind} authenticated=#{authenticated?}>"
       end

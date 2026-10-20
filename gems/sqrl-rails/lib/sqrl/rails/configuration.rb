@@ -12,6 +12,7 @@ module SQRL
     #     sqrl.sign_in = ->(controller, identity, user) { controller.send(:start_new_session_for, user) }
     #   end
     class Configuration
+      # Options forwarded unchanged to {SQRL::Server::Config}.
       SERVER_OPTIONS = %i[insecure_http path_extension nut_ttl cps_token_ttl require_ip_match ask sin
                           on_unknown_identity on_authenticated cps_url clock logger allowed_hosts prune_every
                           before_issue before_handle].freeze

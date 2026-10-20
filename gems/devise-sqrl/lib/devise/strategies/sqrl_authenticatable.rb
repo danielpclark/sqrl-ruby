@@ -3,6 +3,7 @@
 require "devise/strategies/base"
 
 module Devise
+  # Devise's Warden strategy namespace.
   module Strategies
     # Completes a SQRL login on the mapping's callback route: claims the one-time CPS
     # token (or the browser's own, cookie-bound pending login after the poller saw it
@@ -15,6 +16,8 @@ module Devise
         false
       end
 
+      # Claim the CPS token or the browser's pending login, apply the unknown-identity policy and
+      # sign the resource in, or fail with a Devise failure key.
       def authenticate!
         endpoint = Devise::SQRL.endpoint_for(mapping, request)
         completion = endpoint.callback(request)

@@ -6,6 +6,7 @@ module SQRL
     class StatusController < ApplicationController
       include RateLimited
 
+      # The cookie-bound poll: is this browser's pending login authenticated yet?
       def show
         render_rack(sqrl_endpoint.status(request))
       end

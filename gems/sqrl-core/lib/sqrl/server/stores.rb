@@ -20,6 +20,7 @@ module SQRL
       # +idk+ as base64url (the wire and storage-friendly form).
       def idk_b64 = Util.b64u_encode(idk)
 
+      # @return [String] a short description with secret material redacted
       def inspect
         "#<SQRL::Server::Identity idk=#{idk_b64} disabled=#{disabled?} logins=#{logins}>"
       end
@@ -34,6 +35,7 @@ module SQRL
         !expires_at.nil? && expires_at <= now
       end
 
+      # @return [String] a short description with secret material redacted
       def inspect
         "#<SQRL::Server::NutRecord pending_login=#{pending_login_id} used=#{used?}>"
       end
@@ -63,6 +65,7 @@ module SQRL
       def expired?(now)
         !expires_at.nil? && expires_at <= now
       end
+      # @return [String] a short description with secret material redacted
 
       def inspect
         "#<SQRL::Server::PendingLogin id=#{id} authenticated=#{authenticated?}>"

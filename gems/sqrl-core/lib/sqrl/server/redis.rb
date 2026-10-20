@@ -52,6 +52,7 @@ module SQRL
       # Lua scripts. The first line of each is a tag the in-process test double uses to
       # dispatch; Redis ignores it as a comment.
       module Scripts
+        # Fallback for +GETDEL+ on Redis servers older than 6.2.
         GETDEL = <<~LUA
           -- sqrl:getdel
           local v = redis.call('GET', KEYS[1])
@@ -59,6 +60,7 @@ module SQRL
           return v
         LUA
 
+        # Create an identity hash only when the key does not exist yet.
         CREATE_IDENTITY = <<~LUA
           -- sqrl:create
           if redis.call('EXISTS', KEYS[1]) == 1 then return 0 end
@@ -66,6 +68,7 @@ module SQRL
           return 1
         LUA
 
+        # Delete an identity hash and its superseded marker.
         REMOVE_IDENTITY = <<~LUA
           -- sqrl:remove
           local v = redis.call('HGETALL', KEYS[1])
@@ -112,11 +115,17 @@ module SQRL
       module Codec
         module_function
 
+        # @return [String, nil] a Time encoded as epoch seconds
         def time_out(time) = time.nil? ? nil : format("%.6f", time.to_f)
+        # @return [Time, nil] a Time decoded from epoch seconds
         def time_in(str) = str.nil? || str.empty? ? nil : Time.at(Float(str))
+        # @return [String] a boolean encoded for Redis
         def bool_out(value) = value ? "1" : "0"
+        # @return [Boolean] a boolean decoded from Redis
         def bool_in(str) = str == "1"
+        # @return [String, nil] binary bytes encoded for Redis (base64url)
         def bin_out(bytes) = bytes.nil? ? nil : Util.b64u_encode(bytes)
+        # @return [String, nil] binary bytes decoded from Redis
         def bin_in(str) = str.nil? || str.empty? ? nil : Util.b64u_decode(str)
 
         # Milliseconds until +time+, at least 1 (Redis rejects non-positive TTLs).
@@ -126,6 +135,7 @@ module SQRL
           [((time.to_f - Time.now.to_f) * 1000).ceil, 1].max
         end
 
+        # @return [Hash] a flat Redis field/value list as a Hash
         def pairs_to_hash(flat)
           return nil if flat.nil? || flat == false
           return flat if flat.is_a?(Hash)
@@ -157,6 +167,7 @@ module SQRL
           @default_ttl = default_ttl
         end
 
+        # (see SQRL::Server::NutStore#issue)
         def issue(nut:, pending_login_id:, expected_server:, ip:, bound_idk:, expires_at:)
           payload = JSON.generate("pl" => pending_login_id, "srv" => expected_server, "ip" => ip,
                                   "idk" => Codec.bin_out(bound_idk), "exp" => Codec.time_out(expires_at))
@@ -165,6 +176,7 @@ module SQRL
                         bound_idk: bound_idk, expires_at: expires_at, used_at: nil)
         end
 
+        # (see SQRL::Server::NutStore#consume)
         def consume(nut, now: Time.now)
           return nil if nut.nil? || nut.empty?
 
@@ -205,8 +217,10 @@ module SQRL
 
       # @see Server::IdentityStore
       class IdentityStore < Base
+        # Hash fields of an identity record.
         FIELDS = %i[idk suk vuk disabled sqrlonly hardlock ins logins user_ref].freeze
 
+        # (see SQRL::Server::IdentityStore#find)
         def find(idk)
           to_identity(@redis.hgetall(key(:id, Util.b64u_encode(idk))))
         end
@@ -220,6 +234,7 @@ module SQRL
           identity.dup
         end
 
+        # (see SQRL::Server::IdentityStore#update)
         def update(idk, **attrs)
           k = key(:id, Util.b64u_encode(idk))
           return nil unless @redis.exists?(k)
@@ -232,6 +247,7 @@ module SQRL
           find(idk)
         end
 
+        # (see SQRL::Server::IdentityStore#rekey)
         def rekey(old_idk, new_idk, suk:, vuk:, ins:)
           old_b64 = Util.b64u_encode(old_idk)
           new_b64 = Util.b64u_encode(new_idk)
@@ -245,6 +261,7 @@ module SQRL
           @redis.sismember("#{@ns}:superseded", Util.b64u_encode(idk)) ? true : false
         end
 
+        # (see SQRL::Server::IdentityStore#remove)
         def remove(idk)
           flat = @redis.eval(Scripts::REMOVE_IDENTITY, keys: [key(:id, Util.b64u_encode(idk))])
           to_identity(Codec.pairs_to_hash(flat))
@@ -280,6 +297,7 @@ module SQRL
 
       # @see Server::PendingLoginStore
       class PendingLoginStore < Base
+        # Hash fields of a pending-login record.
         FIELDS = %i[authenticated_idk authenticated_at btn asked last_command cps_token cps_token_expires_at
                     ip return_to link_user_ref created_at expires_at ip_matched].freeze
 
@@ -288,6 +306,7 @@ module SQRL
           @default_ttl = default_ttl
         end
 
+        # (see SQRL::Server::PendingLoginStore#create)
         def create(id, ip:, return_to:, expires_at:, link_user_ref: nil, created_at: Time.now)
           login = PendingLogin.new(id: id, ip: ip, return_to: return_to, expires_at: expires_at,
                                    link_user_ref: link_user_ref, created_at: created_at)
@@ -298,12 +317,14 @@ module SQRL
           login.dup
         end
 
+        # (see SQRL::Server::IdentityStore#find)
         def find(id)
           return nil if id.nil?
 
           to_login(id, @redis.hgetall(key(:pl, id)))
         end
 
+        # (see SQRL::Server::IdentityStore#update)
         def update(id, **attrs)
           k = key(:pl, id)
           return nil unless @redis.exists?(k)
@@ -318,6 +339,7 @@ module SQRL
           find(id)
         end
 
+        # (see SQRL::Server::PendingLoginStore#claim_cps_token)
         def claim_cps_token(token, now: Time.now)
           return nil if token.nil? || token.empty?
 
@@ -332,6 +354,8 @@ module SQRL
           to_login(id, hash)
         end
 
+        # Remove expired records (Redis TTLs do most of this already).
+        # @return [Integer] number removed
         def prune!(now = Time.now)
           each_key(:pl) do |k|
             exp = Codec.time_in(@redis.hget(k, "expires_at"))
