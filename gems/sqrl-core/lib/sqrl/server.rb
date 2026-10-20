@@ -154,6 +154,9 @@ module SQRL
           return transient_error unless record
 
           @record = record
+          # Carry the identity binding from the start so that a malformed request cannot
+          # hand out an unbound nut for a transaction that already bound an identity.
+          @bound = record.bound_idk
           @login_id = record.pending_login_id
           @login = @stores.pending_logins.find(@login_id)
           return transient_error if @login.nil? || @login.expired?(@now)
@@ -183,7 +186,6 @@ module SQRL
 
           @result.command = cmd
           @result.idk = idk
-          @bound = record.bound_idk
 
           # --- signature verification ---
           signed = (client_b64 + server_b64).b
@@ -241,7 +243,7 @@ module SQRL
           # --- re-key: previous identity matched and the new keys were supplied ---
           rekey_failed = false
           if prev_match && cmd != Command::QUERY
-            ins_ok = @sin.nil? || previous.ins.nil? || previous.ins == cget.call("pins")
+            ins_ok = @sin.nil? || previous.ins.nil? || Util.secure_compare(previous.ins, cget.call("pins").to_s)
             if suk_new && vuk_new && urs_ok.call(previous.vuk) && ins_ok
               current = @stores.identities.rekey(pidk, idk, suk: suk_new, vuk: vuk_new, ins: cget.call("ins"))
               @result.rekeyed_from = pidk
@@ -275,7 +277,7 @@ module SQRL
                 attrs = { sqrlonly: opts.sqrlonly?, hardlock: opts.hardlock? }
                 if @sin
                   ins = cget.call("ins")
-                  return fail_with(Tif::COMMAND_FAILED) unless ins && (current.ins.nil? || current.ins == ins)
+                  return fail_with(Tif::COMMAND_FAILED) unless ins && (current.ins.nil? || Util.secure_compare(current.ins, ins))
 
                   attrs[:ins] = ins
                 end

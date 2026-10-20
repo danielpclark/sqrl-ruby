@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "uri"
 require "cgi"
 require "json"
 
@@ -243,7 +244,25 @@ module OmniAuth
         return custom.call(env) if custom.respond_to?(:call)
         return custom if custom
 
-        session["omniauth.origin"] || "#{script_name}/"
+        origin = session["omniauth.origin"]
+        safe_cancel_target?(origin) ? origin : "#{script_name}/"
+      end
+
+      # OmniAuth fills +omniauth.origin+ from +params[:origin]+ or the Referer, so it is
+      # attacker-influenced: accept only a same-site root-relative path or an absolute
+      # http(s) URL on this site's host; anything else (javascript:, other hosts) is dropped.
+      def safe_cancel_target?(value)
+        return false unless value.is_a?(String) && !value.empty?
+        return !value.match?(/[\x00-\x20\x7f\\]/) if value.match?(%r{\A/(?![/\\])})
+
+        uri = URI.parse(value)
+        return false unless %w[http https].include?(uri.scheme.to_s.downcase) && uri.host
+
+        hostport = uri.port && uri.port != uri.default_port ? "#{uri.host}:#{uri.port}" : uri.host
+        request_host = request.host_with_port
+        [request.host, request_host, server_config.host].compact.any? { |h| h.casecmp?(hostport) || h.casecmp?(uri.host) }
+      rescue URI::InvalidURIError
+        false
       end
 
       def link_user_ref

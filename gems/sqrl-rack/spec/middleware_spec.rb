@@ -114,6 +114,18 @@ RSpec.describe SQRL::Rack::Middleware do
       browser.get(session.cps_url.sub("https://example.com", ""))
       expect(browser.last_response.headers["location"]).to eq("/home")
     end
+
+    it "ignores return_to values that browsers would turn into another host" do
+      ["/\\evil.example/x", "/\t/evil.example", "/%5Cevil.example/x", "/ /evil.example"].each do |bad|
+        browser = new_browser
+        url = visit_login(browser, "?rt=#{Rack::Utils.escape(bad)}")
+        session = sqrl_login(new_client, url)
+        browser.get(session.cps_url.sub("https://example.com", ""))
+        location = browser.last_response.headers["location"]
+        expect(location).to eq("/home").or(satisfy { |l| l.start_with?("/") && !l.match?(/[\\\s]/) }),
+                            "return_to #{bad.inspect} produced #{location.inspect}"
+      end
+    end
   end
 
   describe "non-CPS login (polling)" do

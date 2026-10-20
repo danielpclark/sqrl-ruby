@@ -18,13 +18,14 @@ module SQRL
         return failure("SQRL login failed or expired. Please try again.") unless completion
 
         user = resolve_user(completion)
-        return failure("This SQRL identity is not linked to an account.") unless user
+        return failure("This SQRL identity is not linked to an account.", completion) unless user
 
         sign_in = SQRL::Rails.config.sign_in || SignIn.method(:default)
         sign_in.call(self, completion.identity, user)
         redirect_to SignIn.after(self, completion), allow_other_host: false
-      rescue SQRL::Rails::Error => e
-        failure(e.message)
+      rescue SQRL::Rails::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved,
+             ActionController::Redirecting::UnsafeRedirectError => e
+        failure(e.message, completion)
       end
 
       private
@@ -93,7 +94,12 @@ module SQRL
         user
       end
 
-      def failure(message)
+      # +completion+ is passed when the pending login was already consumed: the endpoint
+      # recorded the identity in the session at that point, so a failed sign-in must clear
+      # it again, otherwise the controller helpers would report a refused identity as
+      # authenticated.
+      def failure(message, completion = nil)
+        sqrl_endpoint.logout(request) if completion
         flash[:alert] = message if respond_to?(:flash)
         redirect_to(config.failure_path || engine_path(:login), allow_other_host: false)
       end

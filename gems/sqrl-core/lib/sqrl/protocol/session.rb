@@ -195,11 +195,17 @@ module SQRL
 
     # The cancel URL: the server's most recent +can=+ reply parameter (a plain URL or
     # root-relative path) if any, else the base64url-encoded +can=+ of the SQRL URL.
+    #
+    # A cancel URL that does not point at this site (another host, or plain http for a
+    # sqrl:// site) is ignored and +nil+ is returned, so a tampered reply cannot send the
+    # browser elsewhere.
     def cancel_url
       c = @last&.can
-      return @url.resolve(c) if c
+      resolved = c ? @url.resolve(c) : @url.cancel_url
+      return nil unless resolved
+      return resolved if @url.same_host?(resolved)
 
-      @url.cancel_url
+      nil
     end
 
     # Build the initial (or a repeated) +query+, offering the current previous identity.

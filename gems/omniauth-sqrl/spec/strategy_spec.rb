@@ -60,6 +60,16 @@ RSpec.describe OmniAuth::Strategies::SQRL do
       expect(body).not_to include("<svg")
     end
 
+    it "ignores an origin that is not on this site when building the cancel link" do
+      ["javascript:alert(1)", "https://evil.example/", "//evil.example/x", "/\\evil.example"].each do |origin|
+        browser = new_browser
+        start_login(browser, "/auth/sqrl", { "HTTP_REFERER" => origin })
+        body = browser.last_response.body
+        expect(body).not_to include("evil.example"), "origin #{origin.inspect} leaked into the page"
+        expect(body).not_to include("javascript:")
+      end
+    end
+
     it "serves sqrl.js and the status poll from the middleware" do
       browser = new_browser
       browser.get("/auth/sqrl/sqrl.js")

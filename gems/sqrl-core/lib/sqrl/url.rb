@@ -209,11 +209,13 @@ module SQRL
       end
     end
 
-    # Whether an absolute URL (e.g. the CPS +url=+) points at this site's host.
+    # Whether an absolute URL (e.g. the CPS +url=+) points at this site's host, using the
+    # site's own HTTP scheme (https for sqrl://, http only for loopback qrl:// sites), so
+    # a reply cannot downgrade the browser to plain http.
     def same_host?(target)
       t = target.to_s.strip
       scheme, rest = t.split("://", 2)
-      return false unless rest && %w[https http].include?(scheme.downcase)
+      return false unless rest && scheme.casecmp?(http_scheme)
 
       stop = rest.index(%r{[/?#]}) || rest.length
       hostport = rest[0...stop]

@@ -127,8 +127,11 @@ module SQRL
         target.to_s.empty? ? "#{request.script_name}/" : target
       end
 
+      # A same-site, root-relative path. Rejects protocol-relative URLs (//host), the
+      # backslash form browsers normalise to a slash (/\host), and control characters or
+      # whitespace that URL parsers strip before interpreting the rest.
       def same_site_path?(path)
-        path.is_a?(String) && path.start_with?("/") && !path.start_with?("//")
+        path.is_a?(String) && path.match?(%r{\A/(?![/\\])}) && !path.match?(/[\x00-\x20\x7f\\]/)
       end
 
       def failure(request)

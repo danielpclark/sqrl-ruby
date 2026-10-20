@@ -85,6 +85,8 @@ RSpec.describe SQRL::URL do
     expect(u.same_host?("https://example.org/")).to be(false)
     expect(u.same_host?("javascript:alert(1)")).to be(false)
     expect(u.same_host?("https://user@example.com/x")).to be(true)
+    # a sqrl:// site must not be downgraded to plain http
+    expect(u.same_host?("http://example.com/loggedin")).to be(false)
     expect(u.resolve("/x")).to eq("https://example.com/x")
     expect(u.resolve("x")).to eq("https://example.com/x")
     expect(u.resolve("http://other.example/x")).to eq("http://other.example/x")

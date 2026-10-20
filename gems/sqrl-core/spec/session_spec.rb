@@ -114,6 +114,15 @@ RSpec.describe SQRL::Session do
     expect(described_class.new(identity, url).cancel_url).to be_nil
   end
 
+  it "drops a cancel URL that points away from the site" do
+    can = b64("https://evil.example/phish")
+    u = SQRL::URL.parse("sqrl://example.com/cli.sqrl?nut=n1&can=#{can}")
+    s = described_class.new(identity, u)
+    expect(s.cancel_url).to be_nil
+    s.feed(reply("ver=1\r\nnut=a\r\ntif=5\r\nqry=/cli.sqrl?nut=a\r\ncan=http://example.com/bye\r\n"))
+    expect(s.cancel_url).to be_nil
+  end
+
   it "validates the CPS url host" do
     s = described_class.new(identity, url)
     expect(s.cps_url).to be_nil
