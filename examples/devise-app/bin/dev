@@ -1,2 +1,4 @@
 #!/usr/bin/env ruby
-exec "./bin/rails", "server", *ARGV
+# Start the example on PORT (default 3000). Set SQRL_HOST when the public host differs
+# from what the browser sends (for example behind a tunnel).
+exec "./bin/rails", "server", "-p", ENV.fetch("PORT", "3000"), "-b", ENV.fetch("BIND", "127.0.0.1"), *ARGV

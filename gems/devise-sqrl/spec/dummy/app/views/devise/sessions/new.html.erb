@@ -1,0 +1,7 @@
+<h2>Log in</h2>
+<%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+  <%= f.email_field :email %>
+  <%= f.password_field :password %>
+  <%= f.submit "Log in" %>
+<% end %>
+<%= render "devise/shared/sqrl", resource_name: resource_name %>

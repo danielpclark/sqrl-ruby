@@ -60,12 +60,12 @@ module ExampleDescriptors
     ),
     "rails-auth-app" => Descriptor.new(
       name: "rails-auth-app", login_path: "/session/new", protected_path: "/protected", home_path: "/",
-      logged_in: ->(body) { body.match?(/Signed in as|id="protected"/) }, logout: { text: "Sign out" }, cancel: false,
+      logged_in: ->(body) { body.match?(/<p id="status">Signed in as|id="protected"/) }, logout: { text: "Sign out" }, cancel: false,
       features: {}, ready: "config/initializers/sqrl.rb", anonymous_status: 302
     ),
     "devise-app" => Descriptor.new(
       name: "devise-app", login_path: "/users/sign_in", protected_path: "/protected", home_path: "/",
-      logged_in: ->(body) { body.match?(/Logged in|Signed in|id="identity"|Hello/) }, logout: { text: "Log out" },
+      logged_in: ->(body) { body.match?(/<p id="status">Signed in as|id="protected"/) }, logout: { text: "Log out" },
       cancel: false, features: {}, ready: "app/models/user.rb", ready_pattern: /sqrl_authenticatable/,
       anonymous_status: 302
     )

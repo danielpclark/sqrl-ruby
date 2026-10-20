@@ -1,0 +1,11 @@
+<h1>Devise + SQRL</h1>
+<% if user_signed_in? %>
+  <p id="status">Signed in as <strong><%= current_user.email %></strong>
+    (<%= pluralize(current_user.sqrl_identities.count, "SQRL identity") %>).</p>
+  <p><%= link_to "Protected page", protected_path %></p>
+  <%= button_to "Log out", destroy_user_session_path, method: :delete %>
+<% else %>
+  <p id="status">You are not signed in.</p>
+  <p><%= link_to "Sign in", new_user_session_path %> &middot;
+     <%= link_to "Sign in with SQRL only", new_user_sqrl_path %></p>
+<% end %>

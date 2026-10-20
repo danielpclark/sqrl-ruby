@@ -1,0 +1,4 @@
+<h1>Protected page</h1>
+<p id="status">Signed in as <strong><%= current_user.email %></strong>. Only signed-in users see this.</p>
+<p><%= link_to "Home", root_path %></p>
+<%= button_to "Log out", destroy_user_session_path, method: :delete %>

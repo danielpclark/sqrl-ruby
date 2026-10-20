@@ -1,0 +1,9 @@
+<h2>Sign in with SQRL</h2>
+
+<% if flash[:alert].present? %>
+  <p class="alert"><%= flash[:alert] %></p>
+<% end %>
+
+<%= sqrl_login_block_for(resource_name, return_to: params[:return_to]) %>
+
+<%= render "devise/shared/links" if lookup_context.exists?("devise/shared/_links") %>

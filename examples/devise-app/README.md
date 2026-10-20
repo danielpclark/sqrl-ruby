@@ -1,24 +1,29 @@
-# README
+# Example: Devise + SQRL
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+A stock Rails 8.1 application generated with `rails new`, `bin/rails generate
+devise:install` and `bin/rails generate devise User`, with SQRL login added by
+`bin/rails generate devise:sqrl:install` from the `devise-sqrl` gem. Nothing else was
+hand-written except the home page, a protected page and this file.
 
-Things you may want to cover:
+```sh
+bundle install
+bin/rails db:prepare
+bin/dev                       # http://127.0.0.1:3000
+```
 
-* Ruby version
+Open <http://127.0.0.1:3000/users/sign_in>: Devise's email/password form now carries the
+SQRL login block (link, QR code, status). Logging in with SQRL creates a `User` with a
+placeholder email address and a random password (see
+`config/initializers/devise_sqrl.rb` to change that policy) and signs it in through
+Devise's Warden stack, so `current_user`, `user_signed_in?`, trackable and rememberable
+all behave as with a password login.
 
-* System dependencies
+Pages: `/` (home, shows the signed-in state), `/protected` (redirects anonymous visitors
+to the sign-in page), `/users/sqrl` (SQRL-only login page). Log out with the "Log out"
+button (`DELETE /users/sign_out`).
 
-* Configuration
+Environment variables: `PORT`, `BIND`, `SQRL_HOST` (public host for the `sqrl://` URLs).
 
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+Routes added by Devise for `:sqrl_authenticatable`: `GET /users/sqrl`,
+`POST /users/sqrl/cli` (protocol endpoint), `GET /users/sqrl/status`,
+`GET /users/sqrl/callback`, `GET /users/sqrl/sqrl.js`.

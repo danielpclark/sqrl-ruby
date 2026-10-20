@@ -1,0 +1,9 @@
+en:
+  devise:
+    failure:
+      sqrl_invalid: "SQRL login failed or expired. Please try again."
+      sqrl_disabled: "SQRL login is disabled for this account."
+      sqrl_unknown: "This SQRL identity is not linked to an account."
+      sqrl_link_required: "Sign in first, then link your SQRL identity to your account."
+    sqrl:
+      signed_in: "Signed in successfully."

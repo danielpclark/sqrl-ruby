@@ -1,0 +1,6 @@
+<%# Drop this partial into devise/sessions/new.html.erb:
+    <%= render "devise/shared/sqrl", resource_name: resource_name %> %>
+<div class="devise-sqrl">
+  <h3>Or sign in with SQRL</h3>
+  <%= sqrl_login_block_for(local_assigns.fetch(:resource_name) { resource_name }) %>
+</div>
