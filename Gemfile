@@ -31,5 +31,7 @@ group :development, :test do
   gem "capybara"
   gem "cuprite"
   gem "webrick"
+  gem "roda", ">= 3.0"      # Roda plugin specs
+  gem "redis", ">= 5.0"     # Redis store specs (skip without a server)
   gem "simplecov", require: false
 end
