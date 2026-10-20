@@ -1,0 +1,71 @@
+# Shared, deliberately lenient style configuration for every gem in this repository.
+# Correctness and consistency cops are on; size metrics are relaxed because the protocol
+# handler and the stores are long by nature.
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "examples/**/*"
+    - "gems/*/spec/dummy/**/*"
+    - "vendor/**/*"
+    - "tmp/**/*"
+    - "gemfiles/**/*"
+    - "**/node_modules/**/*"
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+Style/Documentation:
+  Enabled: false
+Style/FrozenStringLiteralComment:
+  Enabled: true
+Style/IfUnlessModifier:
+  Enabled: false
+Style/GuardClause:
+  Enabled: false
+Style/NumericPredicate:
+  Enabled: false
+Style/ClassAndModuleChildren:
+  Enabled: false
+Style/OptionalBooleanParameter:
+  Enabled: false
+
+Layout/LineLength:
+  Max: 120
+  AllowedPatterns: ['\A\s*#', '\A\s*(it|describe|context) "']
+
+Metrics/AbcSize:
+  Enabled: false
+Metrics/BlockLength:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/MethodLength:
+  Enabled: false
+Metrics/ModuleLength:
+  Enabled: false
+Metrics/ParameterLists:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Naming/MethodParameterName:
+  Enabled: false
+Naming/VariableNumber:
+  Enabled: false
+Naming/PredicateName:
+  Enabled: false
+
+Lint/MissingSuper:
+  Enabled: false
+Lint/EmptyBlock:
+  Enabled: false
+
+Gemspec/RequireMFA:
+  Enabled: false
+Gemspec/DevelopmentDependencies:
+  Enabled: false
