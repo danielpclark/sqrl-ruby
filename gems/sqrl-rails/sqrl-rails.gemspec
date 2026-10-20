@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.authors = ["Daniel P. Clark"]
   spec.email = ["6ftdan@gmail.com"]
   spec.summary = "SQRL login for Rails: engine, generator, ActiveRecord stores and Rails 8 Authentication support"
-  spec.homepage = "https://github.com/danielpclark/ruby_sqrl"
+  spec.homepage = "https://github.com/danielpclark/sqrl-ruby"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2"
   spec.metadata["homepage_uri"] = spec.homepage

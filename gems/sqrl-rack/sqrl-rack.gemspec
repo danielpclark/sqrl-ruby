@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.summary = "SQRL login for Rack applications and Sinatra"
   spec.description = "Rack middleware serving the SQRL endpoint, status poll and CPS callback, a Sinatra " \
                      "extension with view helpers, the browser-side script and QR code rendering."
-  spec.homepage = "https://github.com/danielpclark/ruby_sqrl"
+  spec.homepage = "https://github.com/danielpclark/sqrl-ruby"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"
   spec.metadata["homepage_uri"] = spec.homepage

@@ -1,6 +1,6 @@
 # SQRL Login for Ruby – Implementation Plan
 
-Status: implemented on branch `claude/kind-babbage-dduewx` (see §10 for what each milestone delivered) · Date: 2026-10-20 · Repository: `danielpclark/ruby_sqrl`
+Status: implemented on branch `claude/kind-babbage-dduewx` (see §10 for what each milestone delivered) · Date: 2026-10-20 · Repository: `danielpclark/sqrl-ruby`
 
 This document is the master plan for bringing **SQRL (Secure Quick Reliable Login)** to the
 Ruby ecosystem: a protocol core, server-side integrations for Rack/Sinatra, OmniAuth,
@@ -785,7 +785,7 @@ page, a non-CPS login completes through the poller, and the "cancel" link follow
 ## 9. Repository layout
 
 ```
-ruby_sqrl/
+sqrl-ruby/
 ├── README.md
 ├── docs/
 │   ├── PLAN.md                     this document
@@ -912,7 +912,7 @@ Decisions the plan makes provisionally; please confirm or change.
    ≥ 4.9; Rack ≥ 2.2; Sinatra ≥ 3.
 4. **Default unknown-identity policy.** `:create` (auto-create an account), matching SQRL's
    design; `:link` for sites that require an existing account.
-5. **Monorepo.** One repository (`ruby_sqrl`) with six gems released in lockstep, versus
+5. **Monorepo.** One repository (`sqrl-ruby`) with six gems released in lockstep, versus
    one repository per gem. The plan assumes the monorepo.
 6. **License.** MIT, matching the browser extension.
 

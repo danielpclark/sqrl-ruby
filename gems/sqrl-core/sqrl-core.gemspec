@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.description = "A complete implementation of Steve Gibson's SQRL authentication protocol: " \
                      "EnScrypt, EnHash, the identity lock, S4 identity storage, the textual identity " \
                      "format, the client transaction state machine and a server-side protocol handler."
-  spec.homepage = "https://github.com/danielpclark/ruby_sqrl"
+  spec.homepage = "https://github.com/danielpclark/sqrl-ruby"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"
   spec.metadata["homepage_uri"] = spec.homepage

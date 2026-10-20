@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.summary = "Bot-capable SQRL client: log in to SQRL-enabled websites from scripts and test suites"
   spec.description = "Identity management, the full SQRL command set, CPS handoff, login-page discovery, " \
                      "a Capybara helper, a CLI and a server conformance suite."
-  spec.homepage = "https://github.com/danielpclark/ruby_sqrl"
+  spec.homepage = "https://github.com/danielpclark/sqrl-ruby"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"
   spec.metadata["homepage_uri"] = spec.homepage
