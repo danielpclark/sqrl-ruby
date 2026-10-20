@@ -23,11 +23,16 @@ module SQRL
       # Full login markup (link, QR, status text, script tag). Options are those of
       # {LoginBlock.render} plus +return_to:+, +link_user_ref:+ and +script:+ (false to
       # leave the script tag out).
+      #
+      # When a +before_issue+ hook refuses the request ({Server::RateLimited}) the block
+      # degrades to a short "try again later" message instead of raising.
       def login_block(return_to: nil, cancel_url: nil, link_user_ref: nil, script: true, **options)
         login = login_url(return_to: return_to, cancel_url: cancel_url, link_user_ref: link_user_ref)
         LoginBlock.render(login_url: login.url, status_url: @endpoint.status_url(@request),
                           cancel_url: cancel_url, script_url: script ? @endpoint.script_url(@request) : nil,
-                          **options)
+                          refresh_url: @endpoint.refresh_url(@request), **options)
+      rescue Server::RateLimited => e
+        LoginBlock.unavailable(message: e.message, css_class: options.fetch(:css_class, "sqrl-login"))
       end
 
       def script_tag
@@ -41,6 +46,7 @@ module SQRL
       def status_url = @endpoint.status_url(@request)
       def callback_url = @endpoint.callback_url(@request)
       def script_url = @endpoint.script_url(@request)
+      def refresh_url = @endpoint.refresh_url(@request)
 
       # The SQRL identity record logged in to this browser session, or nil.
       def identity

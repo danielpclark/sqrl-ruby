@@ -66,8 +66,16 @@ module SQRL
          .scrub
     end
 
+    # Whether +host+ (lower-cased, IPv6 literals in brackets) is a loopback address:
+    # +localhost+ and +*.localhost+, +127.0.0.0/8+, +[::1]+ and the IPv4-mapped form of
+    # 127/8. Any other IPv6 literal is not loopback.
     def self.loopback?(host)
-      LOOPBACK_HOSTS.include?(host) || host.end_with?(".localhost")
+      h = host.to_s.downcase
+      return true if LOOPBACK_HOSTS.include?(h) || h.end_with?(".localhost")
+      return true if h.match?(/\A127\.\d{1,3}\.\d{1,3}\.\d{1,3}\z/)
+
+      bare = h.delete_prefix("[").delete_suffix("]")
+      bare == "::1" || bare == "0:0:0:0:0:0:0:1" || bare.match?(/\A::ffff:127\.\d{1,3}\.\d{1,3}\.\d{1,3}\z/)
     end
 
     # Split +host[:port]+ handling IPv6 literals. Returns +[host, port_or_nil]+.

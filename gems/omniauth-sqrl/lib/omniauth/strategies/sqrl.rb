@@ -64,7 +64,16 @@ module OmniAuth
       option :cli_path, nil
       option :status_path, nil
       option :script_path, nil
+      option :refresh_path, nil
       option :logger, nil
+      # Hosts accepted when +host:+ is derived from the request (see
+      # {::SQRL::Rack::HostResolver}); nil allows any, up to +host_cache_limit+ distinct ones.
+      option :allowed_hosts, nil
+      option :host_cache_limit, ::SQRL::Rack::HostResolver::DEFAULT_LIMIT
+      # Rate-limit hooks, see {::SQRL::Server::Config}.
+      option :before_issue, nil
+      option :before_handle, nil
+      option :prune_every, 1000
 
       # A {::SQRL::Rack::Endpoint} that remembers, per pending login, whether the
       # +ident+ created the account or re-keyed it, so the callback can report it.
@@ -74,6 +83,8 @@ module OmniAuth
           SQRL.record_facts(result) if result.authenticated?
           [200, { "content-type" => "text/plain; charset=utf-8", "cache-control" => "no-store",
                   "x-sqrl-tif" => result.tif.to_hex }, [result.body]]
+        rescue ::SQRL::Server::RateLimited => e
+          rate_limited(e)
         end
       end
 
@@ -166,19 +177,31 @@ module OmniAuth
         login = endpoint.issue(request, cancel_url: cancel_url, link_user_ref: link_user_ref)
         body = login_page(login)
         [200, { "content-type" => "text/html; charset=utf-8", "cache-control" => "no-store" }, [body]]
+      rescue ::SQRL::Server::RateLimited => e
+        headers = { "content-type" => "text/html; charset=utf-8", "cache-control" => "no-store" }
+        headers["retry-after"] = e.retry_after.to_i.to_s if e.retry_after
+        [429, headers, [%(<!doctype html><title>#{CGI.escapeHTML(options.title.to_s)}</title>) +
+                        ::SQRL::Rack::LoginBlock.unavailable(message: e.message)]]
+      rescue ::SQRL::Rack::HostNotAllowed => e
+        [400, { "content-type" => "text/plain; charset=utf-8", "cache-control" => "no-store" }, ["#{e.message}\n"]]
       end
 
-      # Serves the SQRL endpoint, the status poll and the browser script.
+      # Serves the SQRL endpoint, the status poll, the refresh endpoint and the browser
+      # script.
       def other_phase
         if request.post? && on_path?(full_path(cli_path))
           endpoint.cli(request)
         elsif request.get? && on_path?(full_path(status_path))
           endpoint.status(request)
+        elsif request.get? && on_path?(full_path(refresh_path))
+          endpoint.refresh(request)
         elsif request.get? && on_path?(full_path(script_path))
           endpoint.script(request)
         else
           call_app!
         end
+      rescue ::SQRL::Rack::HostNotAllowed => e
+        [400, { "content-type" => "text/plain; charset=utf-8", "cache-control" => "no-store" }, ["#{e.message}\n"]]
       end
 
       # Completes the login from the CPS token or the cookie-bound pending login.
@@ -197,36 +220,65 @@ module OmniAuth
       def cli_path = options.cli_path || "#{path_prefix}/#{name}/cli"
       def status_path = options.status_path || "#{path_prefix}/#{name}/status"
       def script_path = options.script_path || "#{path_prefix}/#{name}/sqrl.js"
+      def refresh_path = options.refresh_path || "#{path_prefix}/#{name}/refresh"
 
       # The request-scoped {Endpoint}.
       def endpoint
         @endpoint ||= Endpoint.new(handler: handler, session_key: SESSION_KEY, identity_key: IDENTITY_KEY,
                                    status_path: status_path, callback_path: relative_callback_path,
-                                   script_path: script_path, ip: options.ip)
+                                   script_path: script_path, refresh_path: refresh_path, ip: options.ip)
       end
 
-      # The {::SQRL::Server::Handler} for this request's host.
+      # The {::SQRL::Server::Handler} for this request's host. Handlers are kept per
+      # (options, host, scheme, mount) in a bounded cache shared by every strategy
+      # instance built from the same options (OmniAuth::Builder rebuilds the strategy on
+      # each request).
+      #
+      # @raise [::SQRL::Rack::HostNotAllowed] when a derived host is not acceptable
       def handler
-        @handler ||= ::SQRL::Server::Handler.new(config: server_config, stores: stores)
+        @handler ||= begin
+          resolver = self.class.host_resolver_for(options)
+          host, scheme = resolver.resolve(request)
+          resolver.fetch([host, scheme, script_name.to_s]) do
+            ::SQRL::Server::Handler.new(config: server_config(host, scheme), stores: stores)
+          end
+        end
       end
 
-      def server_config
-        host = (options.host || request.host_with_port).to_s
-        scheme = (options.scheme || default_scheme(host)).to_s
+      def server_config(host, scheme)
         ::SQRL::Server::Config.new(
           host: host, scheme: scheme, path: full_path(cli_path), callback_path: full_path(relative_callback_path),
           path_extension: options.path_extension, nut_ttl: options.nut_ttl.to_i, cps_token_ttl: options.cps_token_ttl.to_i,
           require_ip_match: options.require_ip_match ? true : false, ask: options.ask, sin: options.sin,
-          on_unknown_identity: options.on_unknown_identity.to_sym, logger: options.logger
+          on_unknown_identity: options.on_unknown_identity.to_sym, logger: options.logger,
+          allowed_hosts: options.allowed_hosts, prune_every: options.prune_every,
+          before_issue: options.before_issue, before_handle: options.before_handle
         )
       end
 
-      private
+      @host_resolvers = {}
 
-      def default_scheme(host)
-        bare = host.sub(/:\d+\z/, "").downcase
-        request.scheme == "http" && ::SQRL::URL.loopback?(bare) ? "qrl" : "sqrl"
+      class << self
+        # One {::SQRL::Rack::HostResolver} (and so one bounded handler cache) per distinct
+        # provider configuration: OmniAuth::Builder rebuilds the strategy for every
+        # request from the same option values, so equal configurations share it.
+        def host_resolver_for(options)
+          key = options.to_hash.reject { |k, _| k.to_s == "stores" }.merge("stores" => options.stores.object_id)
+          @facts_mutex.synchronize do
+            @host_resolvers[key] ||= ::SQRL::Rack::HostResolver.new(host: options.host, scheme: options.scheme,
+                                                                      allowed_hosts: options.allowed_hosts,
+                                                                      limit: options.host_cache_limit,
+                                                                      logger: options.logger || OmniAuth.logger)
+          end
+        end
+
+        # Forget cached host resolvers and handlers (tests).
+        def reset_host_resolvers!
+          @facts_mutex.synchronize { @host_resolvers.clear }
+        end
       end
+
+      private
 
       # OmniAuth's +callback_path+ includes +SCRIPT_NAME+; the endpoint wants it without.
       def relative_callback_path
@@ -260,7 +312,7 @@ module OmniAuth
 
         hostport = uri.port && uri.port != uri.default_port ? "#{uri.host}:#{uri.port}" : uri.host
         request_host = request.host_with_port
-        [request.host, request_host, server_config.host].compact.any? { |h| h.casecmp?(hostport) || h.casecmp?(uri.host) }
+        [request.host, request_host, handler.config.host].compact.any? { |h| h.casecmp?(hostport) || h.casecmp?(uri.host) }
       rescue URI::InvalidURIError
         false
       end

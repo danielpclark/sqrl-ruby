@@ -44,11 +44,28 @@ module SQRL
       attr_accessor :clock
       # Logger (anything responding to +debug+/+info+/+warn+), or nil.
       attr_accessor :logger
+      # Hosts (Strings, compared case-insensitively with or without port, or Regexps)
+      # that an integration deriving +host+ from the request may use; nil allows any.
+      attr_accessor :allowed_hosts
+      # Run {Handler#prune!} once every this many issued or handled requests; nil disables.
+      attr_accessor :prune_every
+      # Callable +(context)+ run before a login URL is issued; context has +:ip+ and
+      # +:pending_login_id+. Raise {RateLimited} to refuse.
+      attr_accessor :before_issue
+      # Callable +(context)+ run before a POST is processed (+phase: :request+, with
+      # +:ip+ and +:nut+) and again once the command is known (+phase: :command+, adding
+      # +:command+ and +:idk+). Raise {RateLimited} to refuse.
+      attr_accessor :before_handle
 
       def initialize(host: nil, path: "/sqrl/cli", callback_path: "/sqrl/callback", scheme: "sqrl",
                      path_extension: nil, nut_ttl: 300, cps_token_ttl: 60, require_ip_match: true,
                      ask: nil, sin: nil, on_unknown_identity: :create, on_authenticated: nil,
-                     cps_url: nil, clock: nil, logger: nil)
+                     cps_url: nil, clock: nil, logger: nil, allowed_hosts: nil, prune_every: 1000,
+                     before_issue: nil, before_handle: nil)
+        @allowed_hosts = allowed_hosts
+        @prune_every = prune_every
+        @before_issue = before_issue
+        @before_handle = before_handle
         @host = host
         @path = path
         @callback_path = callback_path
@@ -75,8 +92,7 @@ module SQRL
         raise ArgumentError, "path must start with /" unless @path.to_s.start_with?("/")
         raise ArgumentError, "callback_path must start with /" unless @callback_path.to_s.start_with?("/")
         raise ArgumentError, "scheme must be sqrl or qrl" unless SCHEMES.include?(@scheme)
-        if @scheme == "qrl" && !URL.loopback?(@host.to_s.split(":").first.to_s.downcase) &&
-           !@host.start_with?("[")
+        if @scheme == "qrl" && !URL.loopback?(bare_host)
           raise ArgumentError, "qrl:// (plain http) is only allowed for loopback hosts"
         end
         unless @path_extension.nil? || (@path_extension.is_a?(Integer) && @path_extension.positive?)
@@ -92,8 +108,45 @@ module SQRL
         raise ArgumentError, "on_authenticated must be callable" unless @on_authenticated.nil? || callable?(@on_authenticated)
         raise ArgumentError, "cps_url must be callable" unless @cps_url.nil? || callable?(@cps_url)
         raise ArgumentError, "clock must be callable" unless callable?(@clock)
+        unless @allowed_hosts.nil? || (@allowed_hosts.is_a?(Array) && @allowed_hosts.all? { |h| h.is_a?(String) || h.is_a?(Regexp) })
+          raise ArgumentError, "allowed_hosts must be nil or an Array of Strings and Regexps"
+        end
+        unless @prune_every.nil? || (@prune_every.is_a?(Integer) && @prune_every.positive?)
+          raise ArgumentError, "prune_every must be nil or a positive Integer"
+        end
+        raise ArgumentError, "before_issue must be callable" unless @before_issue.nil? || callable?(@before_issue)
+        raise ArgumentError, "before_handle must be callable" unless @before_handle.nil? || callable?(@before_handle)
 
         true
+      end
+
+      # The host without port (IPv6 literals keep their brackets), lower-cased.
+      def bare_host
+        host, = URL.split_host_port(@host.to_s)
+        host.to_s.downcase
+      rescue FormatError
+        @host.to_s.downcase
+      end
+
+      # Whether +host+ (with or without port) is acceptable under +allowed_hosts+. Always
+      # true when no list is configured.
+      def host_allowed?(host)
+        return true if @allowed_hosts.nil?
+
+        candidate = host.to_s.downcase
+        bare = begin
+          URL.split_host_port(candidate).first.to_s
+        rescue FormatError
+          candidate
+        end
+        @allowed_hosts.any? do |allowed|
+          if allowed.is_a?(Regexp)
+            candidate.match?(allowed) || bare.match?(allowed)
+          else
+            a = allowed.downcase
+            a == candidate || a == bare
+          end
+        end
       end
 
       # +https+ (or +http+ for +qrl+).

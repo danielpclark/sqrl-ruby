@@ -22,7 +22,10 @@ module SQRL
         def cps? = via == :cps
       end
 
-      attr_reader :handler, :config, :session_key, :identity_key, :status_path, :callback_path, :script_path
+      attr_reader :handler, :config, :session_key, :identity_key, :status_path, :callback_path, :script_path,
+                  :refresh_path
+
+      RATE_LIMITED_HEADERS = { "content-type" => "text/plain; charset=utf-8", "cache-control" => "no-store" }.freeze
 
       # @param handler [Server::Handler]
       # @param status_path [String] app-relative path of the JSON poll endpoint
@@ -36,9 +39,13 @@ module SQRL
       # matched the browser's. Without it, a client that sent +noiptest+ could be tricked
       # into authenticating a login page opened by someone else, who would then be
       # logged in as that identity. CPS completions are unaffected.
+      # +refresh_path+ serves {#refresh}: a JSON endpoint the page calls (through
+      # +SQRL.refresh+) to swap an expired login URL for a fresh one without a reload.
       def initialize(handler:, session_key: SESSION_KEY, identity_key: IDENTITY_KEY, status_path: "/sqrl/status",
-                     callback_path: nil, script_path: "/sqrl/sqrl.js", ip: nil, poll_requires_ip_match: true)
+                     callback_path: nil, script_path: "/sqrl/sqrl.js", refresh_path: "/sqrl/refresh", ip: nil,
+                     poll_requires_ip_match: true)
         @handler = handler
+        @refresh_path = refresh_path
         @poll_requires_ip_match = poll_requires_ip_match
         @config = handler.config
         @session_key = session_key
@@ -78,6 +85,36 @@ module SQRL
         result = @handler.handle(nut: request.GET["nut"].to_s, body: form_body(request), ip: client_ip(request))
         [200, { "content-type" => "text/plain; charset=utf-8", "cache-control" => "no-store",
                 "x-sqrl-tif" => result.tif.to_hex }, [result.body]]
+      rescue Server::RateLimited => e
+        rate_limited(e)
+      end
+
+      # The 429 response for a {Server::RateLimited} raised by a hook.
+      #
+      # @return [Array] a Rack response triple
+      def rate_limited(error, json: false)
+        headers = RATE_LIMITED_HEADERS.dup
+        headers["retry-after"] = error.retry_after.to_i.to_s if error.retry_after
+        body = json ? JSON.generate(error: "rate_limited", message: error.message) : "#{error.message}\n"
+        headers["content-type"] = "application/json; charset=utf-8" if json
+        [429, headers, [body]]
+      end
+
+      # Hand the page a fresh login URL for its browser session (a new pending login and
+      # nut, carrying over +return_to+ and the link target of the previous one), as JSON:
+      # +{"sqrl_url", "status_url", "qr_svg"}+. +qr=0+ leaves the QR code out.
+      #
+      # @return [Array] a Rack response triple
+      def refresh(request)
+        previous_id = pending_login_id(request)
+        previous = previous_id && @handler.stores.pending_logins.find(previous_id)
+        login = issue(request, return_to: previous&.return_to, link_user_ref: previous&.link_user_ref)
+        payload = { sqrl_url: login.url, status_url: status_url(request), refresh_url: refresh_url(request) }
+        payload[:qr_svg] = QR.svg(login.url) unless request.GET["qr"] == "0"
+        [200, { "content-type" => "application/json; charset=utf-8", "cache-control" => "no-store" },
+         [JSON.generate(payload)]]
+      rescue Server::RateLimited => e
+        rate_limited(e, json: true)
       end
 
       # Answer the browser's poll with JSON.
@@ -119,7 +156,7 @@ module SQRL
           else
             [expected_id && @handler.stores.pending_logins.find(expected_id), :poll]
           end
-        return nil if login.nil? || expected_id.nil? || login.id != expected_id
+        return nil if login.nil? || expected_id.nil? || !Util.secure_compare(login.id.to_s, expected_id.to_s)
         return nil unless login.authenticated? && !login.expired?(@config.now)
         return nil if via == :poll && !poll_completable?(login)
 
@@ -174,6 +211,7 @@ module SQRL
       def status_url(request) = prefixed(request, @status_path)
       def callback_url(request) = prefixed(request, @callback_path)
       def script_url(request) = prefixed(request, @script_path)
+      def refresh_url(request) = prefixed(request, @refresh_path)
 
       # The client IP a request comes from.
       def client_ip(request)

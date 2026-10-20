@@ -274,11 +274,23 @@ module SQRL
     attr_reader :message
     # Zero, one or two buttons. A client shows "OK" when there are none.
     attr_reader :buttons
+    # Button numbers (1 or 2; 0 is the plain "OK" of a buttonless ask) whose answer lets
+    # the transaction proceed, or nil to accept any answer. A server-side setting only:
+    # it is not part of the wire form.
+    attr_reader :accept
 
-    def initialize(message:, buttons: [])
+    def initialize(message:, buttons: [], accept: nil)
       @message = message.to_s
       @buttons = buttons.map { |b| b.is_a?(AskButton) ? b : AskButton.new(**b) }.freeze
+      @accept = accept.nil? ? nil : Array(accept).map(&:to_i).freeze
       freeze
+    end
+
+    # Whether a +btn=+ answer lets the login proceed. Any answer does when +accept+ is nil.
+    def accepts?(btn)
+      return true if @accept.nil?
+
+      @accept.include?(btn.to_i)
     end
 
     # Parse the wire form.
@@ -305,12 +317,12 @@ module SQRL
     end
 
     def ==(other)
-      other.is_a?(Ask) && other.message == @message && other.buttons == @buttons
+      other.is_a?(Ask) && other.message == @message && other.buttons == @buttons && other.accept == @accept
     end
     alias eql? ==
 
     def hash
-      [@message, @buttons].hash
+      [@message, @buttons, @accept].hash
     end
   end
 

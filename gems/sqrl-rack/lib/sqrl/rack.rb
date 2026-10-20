@@ -15,6 +15,7 @@ module SQRL
   end
 end
 
+require_relative "rack/host_resolver"
 require_relative "rack/assets"
 require_relative "rack/qr"
 require_relative "rack/login_block"

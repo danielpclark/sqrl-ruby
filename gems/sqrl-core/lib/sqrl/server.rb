@@ -12,6 +12,18 @@ module SQRL
   # {Handler#handle}, render {Handler#new_login_url} on the login page, answer the browser's
   # poll from {Handler#status} and complete a CPS login through {Handler#claim_cps}.
   module Server
+    # Raised by a +before_issue+ / +before_handle+ hook to refuse a request (rate limit,
+    # block list). HTTP integrations answer 429.
+    class RateLimited < SQRL::Error
+      # Seconds the client should wait, or nil.
+      attr_reader :retry_after
+
+      def initialize(message = "too many SQRL requests", retry_after: nil)
+        super(message)
+        @retry_after = retry_after
+      end
+    end
+
     # A freshly issued login URL.
     LoginURL = Struct.new(:url, :nut, :pending_login_id, :cancel_url, keyword_init: true) do
       # The URL base64url-encoded, as the +localhost:25519/<b64>+ CPS link form carries it.
@@ -44,6 +56,8 @@ module SQRL
 
         @config = config
         @stores = stores
+        @counter = 0
+        @counter_mutex = Mutex.new
       end
 
       # Issue a fresh +sqrl://+ login URL for a browser's login page.
@@ -59,6 +73,8 @@ module SQRL
       def new_login_url(pending_login_id = nil, ip:, cancel_url: nil, return_to: nil, link_user_ref: nil)
         now = @config.now
         pending_login_id ||= new_id
+        @config.before_issue&.call({ ip: ip.to_s, pending_login_id: pending_login_id, config: @config })
+        count_request
         nut = new_nut
         url = +"#{@config.scheme}://#{@config.host}#{@config.path}?"
         url << "x=#{@config.path_extension}&" if @config.path_extension
@@ -97,8 +113,24 @@ module SQRL
       # @param ip [String] the client's address
       # @return [Result] whose +body+ is the response (base64url text)
       def handle(nut:, body:, ip:)
+        @config.before_handle&.call({ phase: :request, ip: ip.to_s, nut: nut.to_s, command: nil, idk: nil,
+                                      config: @config })
+        count_request
         tx = Transaction.new(self, nut: nut.to_s, body: body.to_s, ip: ip.to_s)
         tx.run
+      end
+
+      # Count one request and prune opportunistically every +config.prune_every+ requests.
+      # @api private
+      def count_request
+        every = @config.prune_every
+        return unless every
+
+        due = @counter_mutex.synchronize do
+          @counter += 1
+          (@counter % every).zero?
+        end
+        prune! if due
       end
 
       # Delete expired nuts and pending logins.
@@ -186,6 +218,7 @@ module SQRL
 
           @result.command = cmd
           @result.idk = idk
+          @config.before_handle&.call({ phase: :command, ip: @ip, nut: @nut, command: cmd, idk: idk, config: @config })
 
           # --- signature verification ---
           signed = (client_b64 + server_b64).b
@@ -234,6 +267,9 @@ module SQRL
           @login = @stores.pending_logins.update(@login_id, **updates)
           ask = @config.ask_for(context(identity: matched, idk: idk))
           ask_pending = !ask.nil? && @login.btn.nil?
+          # Answered with a button the site does not accept (for example "Deny"): the
+          # transaction cannot authenticate until the client answers again.
+          ask_refused = !ask.nil? && !@login.btn.nil? && !ask.accepts?(@login.btn)
 
           suk_new = decode32(cget.call("suk"))
           vuk_new = decode32(cget.call("vuk"))
@@ -268,7 +304,7 @@ module SQRL
               @login = @stores.pending_logins.update(@login_id, asked: true)
             end
           when Command::IDENT
-            if rekey_failed || (ask_pending && @login.asked?)
+            if rekey_failed || (ask_pending && @login.asked?) || ask_refused
               @tif |= Tif::COMMAND_FAILED
             elsif id_match
               if current.disabled?
@@ -298,7 +334,7 @@ module SQRL
               @tif |= Tif::SQRL_DISABLED
             end
           when Command::ENABLE
-            if rekey_failed || !id_match
+            if rekey_failed || !id_match || ask_refused
               @tif |= Tif::COMMAND_FAILED
             elsif prev_match || urs_ok.call(current.vuk)
               # after a re-key the urs was already verified against the old vuk

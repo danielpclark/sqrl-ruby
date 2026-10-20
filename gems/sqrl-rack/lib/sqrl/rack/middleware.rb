@@ -21,16 +21,21 @@ module SQRL
     # +ip:+ (callable resolving the client IP), +on_login:+ (callable
     # +(env, identity, pending_login)+), +after_login:+ (path, URL or callable
     # +(env, completion) -> String+; a same-site +return_to+ recorded on the pending login
-    # wins), +failure_path:+ (redirect target when the callback fails; 403 when nil) and
+    # wins), +failure_path:+ (redirect target when the callback fails; 403 when nil),
     # +session_identity:+ (store the +idk+ in the session; defaults to true when
-    # +on_login+ is nil).
+    # +on_login+ is nil), +refresh_path:+ (JSON endpoint handing the page a fresh login
+    # URL), +allowed_hosts:+ and +host_cache_limit:+ (see {HostResolver}; derived hosts
+    # beyond the limit get 400), and the rate-limit hooks +before_issue:+ /
+    # +before_handle:+ (see {Server::Config}; a hook raising {Server::RateLimited} turns
+    # into HTTP 429).
     class Middleware
       DEFAULTS = {
         path: "/sqrl/cli", callback_path: "/sqrl/callback", status_path: "/sqrl/status", script_path: "/sqrl/sqrl.js",
-        session_key: Endpoint::SESSION_KEY, identity_key: Endpoint::IDENTITY_KEY, after_login: "/"
+        refresh_path: "/sqrl/refresh", session_key: Endpoint::SESSION_KEY, identity_key: Endpoint::IDENTITY_KEY,
+        after_login: "/"
       }.freeze
-      ENDPOINT_KEYS = %i[status_path script_path session_key identity_key ip poll_requires_ip_match].freeze
-      MIDDLEWARE_KEYS = %i[stores on_login after_login failure_path session_identity].freeze
+      ENDPOINT_KEYS = %i[status_path script_path refresh_path session_key identity_key ip poll_requires_ip_match].freeze
+      MIDDLEWARE_KEYS = %i[stores on_login after_login failure_path session_identity host_cache_limit].freeze
 
       # @param app [#call]
       # @param options [Hash, #call] options, or a callable returning them (resolved on
@@ -39,7 +44,6 @@ module SQRL
         @app = app
         @raw_options = options
         @mutex = Mutex.new
-        @endpoints = {}
       end
 
       def call(env)
@@ -54,10 +58,14 @@ module SQRL
           complete(endpoint, request)
         elsif request.get? && path == endpoint.script_path
           endpoint.script(request)
+        elsif request.get? && path == endpoint.refresh_path
+          endpoint.refresh(request)
         else
           env["sqrl.server"] = Facade.new(endpoint, request)
           @app.call(env)
         end
+      rescue HostNotAllowed => e
+        [400, { "content-type" => "text/plain; charset=utf-8", "cache-control" => "no-store" }, ["#{e.message}\n"]]
       end
 
       # Resolved options (frozen).
@@ -75,23 +83,29 @@ module SQRL
         @stores ||= options[:stores] || Server::Memory.stores
       end
 
-      # One {Endpoint} per (host, scheme, mount prefix) combination, built lazily.
-      def endpoint_for(request)
-        host = options[:host] || request.host_with_port
-        scheme = options[:scheme] || default_scheme(request, host)
-        prefix = request.script_name.to_s
-        key = [host, scheme, prefix]
+      # The {HostResolver} deciding host and scheme per request and bounding the
+      # per-host endpoint cache.
+      def host_resolver
+        return @host_resolver if @host_resolver
+
+        opts = options # resolved outside the lock: it takes the same mutex
         @mutex.synchronize do
-          @endpoints[key] ||= build_endpoint(host, scheme, prefix)
+          @host_resolver ||= HostResolver.new(host: opts[:host], scheme: opts[:scheme],
+                                              allowed_hosts: opts[:allowed_hosts],
+                                              limit: opts[:host_cache_limit], logger: opts[:logger])
         end
       end
 
-      private
-
-      def default_scheme(request, host)
-        bare = host.to_s.sub(/:\d+\z/, "").downcase
-        request.scheme == "http" && URL.loopback?(bare) ? "qrl" : "sqrl"
+      # One {Endpoint} per (host, scheme, mount prefix) combination, built lazily.
+      #
+      # @raise [HostNotAllowed] when the request host is not acceptable
+      def endpoint_for(request)
+        host, scheme = host_resolver.resolve(request)
+        prefix = request.script_name.to_s
+        host_resolver.fetch([host, scheme, prefix]) { build_endpoint(host, scheme, prefix) }
       end
+
+      private
 
       def build_endpoint(host, scheme, prefix)
         config_opts = options.reject { |k, _| ENDPOINT_KEYS.include?(k) || MIDDLEWARE_KEYS.include?(k) }
@@ -103,7 +117,7 @@ module SQRL
         handler = Server::Handler.new(config: config, stores: stores)
         Endpoint.new(handler: handler, session_key: options[:session_key], identity_key: options[:identity_key],
                      status_path: options[:status_path], callback_path: options[:callback_path],
-                     script_path: options[:script_path], ip: options[:ip],
+                     script_path: options[:script_path], refresh_path: options[:refresh_path], ip: options[:ip],
                      poll_requires_ip_match: options.fetch(:poll_requires_ip_match, true))
       end
 

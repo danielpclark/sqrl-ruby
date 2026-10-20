@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "securerandom"
+require "logger"
 
 RSpec.describe OmniAuth::Strategies::SQRL do
   let(:stores) { SQRL::Server::Memory.stores }
@@ -228,6 +229,36 @@ RSpec.describe OmniAuth::Strategies::SQRL do
       url = start_login(browser)
       session = sqrl_login(new_client(app), url, ip: "203.0.113.9")
       expect(session.state).to eq(:known)
+    end
+  end
+
+  describe "hosts and rate limits" do
+    it "answers 400 for a derived host that is not allowed, and serves the refresh endpoint" do
+      app = build_app(stores: stores, allowed_hosts: ["example.com"], logger: Logger.new(nil))
+      browser = Rack::Test::Session.new(Rack::MockSession.new(app, "evil.example"))
+      browser.post("/auth/sqrl", {}, { "HTTPS" => "on" })
+      expect(browser.last_response.status).to eq(400)
+
+      browser = new_browser(app)
+      url = start_login(browser)
+      expect(url).to start_with("sqrl://example.com/auth/sqrl/cli?nut=")
+      browser.get("/auth/sqrl/refresh", {}, { "HTTPS" => "on", "REMOTE_ADDR" => ClientHelpers::BROWSER_IP })
+      expect(browser.last_response.status).to eq(200)
+      json = JSON.parse(browser.last_response.body)
+      expect(json["sqrl_url"]).to start_with("sqrl://example.com/auth/sqrl/cli?nut=")
+      expect(json["status_url"]).to eq("/auth/sqrl/status")
+    end
+
+    it "answers 429 when a hook refuses" do
+      app = build_app(provider_options.merge(before_issue: ->(_ctx) { raise SQRL::Server::RateLimited, "busy" },
+                                             before_handle: ->(_ctx) { raise SQRL::Server::RateLimited, "busy" }))
+      browser = new_browser(app)
+      browser.post("/auth/sqrl", {}, { "REMOTE_ADDR" => ClientHelpers::BROWSER_IP, "HTTPS" => "on" })
+      expect(browser.last_response.status).to eq(429)
+      expect(browser.last_response.body).to include("data-sqrl-unavailable", "busy")
+      client = new_client(app)
+      client.post("/auth/sqrl/cli?nut=x", "")
+      expect(client.last_response.status).to eq(429)
     end
   end
 

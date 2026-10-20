@@ -253,6 +253,36 @@ RSpec.describe "protocol flows" do
     expect(r.tif).not_to be_error
   end
 
+  it "refuses an ident answered with a button the ask does not accept" do
+    ask = SQRL::Ask.new(message: "Allow this login?", buttons: [{ label: "Allow" }, { label: "Deny" }], accept: [1])
+    expect(ask.accepts?(1)).to be(true)
+    expect(ask.accepts?(2)).to be(false)
+    expect(SQRL::Ask.new(message: "x").accepts?(2)).to be(true)
+    expect(SQRL::Ask.parse(ask.to_wire).accept).to be_nil
+    handler = new_handler(ask: ask)
+    id = identity(12)
+    _, s = new_session(handler, id)
+    exchange(handler, s, s.query)
+    exchange(handler, s, s.ident) # creates the account; the ask is posed from now on
+
+    sid, s = new_session(handler, id)
+    exchange(handler, s, s.query)
+    expect(s.pending_ask).not_to be_nil
+    s.set_button(2) # Deny
+    exchange(handler, s, s.query)
+    expect(handler.stores.pending_logins.find(sid).btn).to eq(2)
+    r = exchange(handler, s, s.ident)
+    expect(r.tif).to be_command_failed
+    expect(r).not_to be_authenticated
+    expect(handler.stores.pending_logins.find(sid)).not_to be_authenticated
+
+    s.set_button(1) # Allow, in the same transaction
+    exchange(handler, s, s.query)
+    r = exchange(handler, s, s.ident)
+    expect(r.tif).not_to be_error
+    expect(r).to be_authenticated
+  end
+
   it "supports a dynamic ask" do
     asked = []
     handler = new_handler(ask: lambda { |ctx|
