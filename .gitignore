@@ -1,0 +1,17 @@
+*.gem
+/Gemfile.lock
+/gems/*/Gemfile.lock
+/examples/*/Gemfile.lock
+/examples/*/log/
+/examples/*/tmp/
+/examples/*/storage/
+/examples/*/db/*.sqlite3*
+/gemfiles/*.lock
+/coverage/
+/tmp/
+/.bundle/
+/gems/*/.bundle/
+/examples/*/.bundle/
+/pkg/
+/doc/
+/.yardoc/

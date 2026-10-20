@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  gems:
+    name: Gem specs (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.2", "3.3", "3.4"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Gem specs
+        run: bundle exec rake spec:gems
+
+  integration:
+    name: Integration (example apps, bot client, headless browser)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+      - name: Integration specs
+        env:
+          BROWSER_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: bundle exec rake spec:integration
+
+  interop:
+    name: Interop with the Rust reference server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: danielpclark/SQRL-extension
+          path: tmp/sqrl-extension
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tmp/sqrl-extension
+      - name: Build sqrl-test-server
+        run: cargo build --release -p sqrl-test-server --manifest-path tmp/sqrl-extension/Cargo.toml
+      - name: Conformance suite against the Rust server
+        env:
+          SQRL_RUST_TEST_SERVER: tmp/sqrl-extension/target/release/sqrl-test-server
+        run: bundle exec rspec spec/interop
