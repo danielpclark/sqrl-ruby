@@ -42,5 +42,7 @@ come before `register`.
 - Sinatra's `Rack::Protection` lets the token-less SQRL POST through (the request has no
   Referer and no session-changing effect at the app level); the middleware rebuilds the
   form body if a protection layer consumed `rack.input`.
-- Plain-http loopback requests get `qrl://` URLs automatically so development works
-  without TLS; production always issues `sqrl://`.
+- URLs are always `sqrl://` (HTTPS). For local development either terminate TLS in front
+  of the app (the examples and the integration suite use a self-signed certificate) or opt
+  into the non-standard loopback-only plain-HTTP mode with `insecure_http: true`, which
+  only the browser extension's test flow understands.

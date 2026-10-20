@@ -66,6 +66,12 @@ and `SQRL::Protocol.parse_pairs` are the low-level pieces.
 `SQRL::Tif` wraps the value with predicate methods; any bit above 0x200 makes
 `Tif#defined?` false and the client aborts.
 
+## Scheme
+
+`sqrl://` is the only scheme and it means HTTPS: the client POSTs to `https://` + the rest
+of the URL. The draft-era `qrl://` (plain HTTP) is not part of final SQRL; the gems parse it
+only in the explicit loopback testing mode described in `docs/security.md`.
+
 ## A transaction
 
 1. The site renders `sqrl://host/path?nut=N` (`SQRL::Server::Handler#new_login_url`).

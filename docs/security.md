@@ -38,8 +38,9 @@ secrets and signatures are constant time.
 
 On the client side (`SQRL::Session` and `sqrl-client`): TIF bits outside protocol version 1
 abort the transaction; `qry` must be a server-relative path; the CPS `url=` and any
-`can=` must point at the site's host with the site's scheme; `qrl://` (plain HTTP) is
-accepted for loopback hosts only; `ask` button URLs are forced onto the site's origin.
+`can=` must point at the site's host over HTTPS; `ask` button URLs are forced onto the
+site's origin. Plain HTTP is refused unless the caller opts into the loopback-only
+`insecure` testing mode (see "Plain HTTP" below).
 
 ## Login binding
 
@@ -53,11 +54,12 @@ Completing a login requires one of two things:
   after `cps_token_ttl` (60 s), and must belong to the pending login in *that browser's*
   session. A token stolen from one browser cannot log in another.
 - **Poll (other device).** The browser's script polls a cookie-bound status endpoint. The
-  pending login completes once, from the browser that owns it, and only if the SQRL client
-  that authenticated it came from the same IP as the browser (`ip_matched`). This closes the
-  case where a client that sent `noiptest` is shown a login page opened by an attacker.
-  Sites that must support poll logins across different egress IPs can opt out with
-  `poll_requires_ip_match: false` and accept that risk explicitly.
+  pending login completes once, from the browser that owns it. The protocol's own IP check
+  applies (`require_ip_match`: a client whose IP differs from the browser's is refused
+  unless it sends `noiptest`). The pending login also records whether the IPs matched
+  (`ip_matched`); the optional `poll_requires_ip_match: true` refuses poll completions
+  when they did not, which blocks a relayed-QR attack against a `noiptest` client but
+  also blocks legitimate phone logins from another network. It is off by default.
 
 Unknown identities follow `on_unknown_identity`: `:create` an account (SQRL's default
 story), `:link` to the already signed-in user, or `:refuse`.
@@ -74,11 +76,12 @@ every association on restart.
 
 - Set `host` explicitly in production. It is the string every identity key is derived
   from; a change (or a spoofed `Host` header) breaks or misdirects associations.
-- Serve the site over HTTPS. `qrl://` is never issued for non-loopback hosts.
+- Serve the site over HTTPS. SQRL URLs are always `sqrl://`, which means HTTPS; the gems
+  never derive a scheme from the request.
 - Use a persistent, atomic store (ActiveRecord, Redis, or an `ActiveSupport::Cache` store
   with atomic delete). Never the memory stores.
-- Keep `require_ip_match` and `poll_requires_ip_match` on unless you have a documented
-  reason.
+- Keep `require_ip_match` on (it is the protocol's check). Turn `poll_requires_ip_match`
+  on only if your users log in from the same network as their browser.
 - Prune: run `sqrl:prune` (Rails) or `Handler#prune!` regularly, or set `prune_every`.
 - Rate-limit the login page and the SQRL endpoint (`before_issue` / `before_handle`
   hooks, Rails `rate_limit`, or Rack::Attack). Each login page view creates a nut and a
@@ -90,6 +93,15 @@ every association on restart.
   these flags because the user asked for them.
 - Log protocol failures (TIF values are safe to log); never log nuts, tokens, `server=`
   echoes or key material. The gems' `inspect` output is redacted for that reason.
+
+## Plain HTTP
+
+Final SQRL has one scheme, `sqrl://`, and it means HTTPS. Early drafts also had `qrl://`
+for plain HTTP; that was dropped, and GRC's client does not honour it. The gems keep a
+loopback-only testing mode for the browser extension's local flow: `insecure_http: true`
+on the server (issues `qrl://` for `localhost`/`127.0.0.1` only, logs a warning, refuses any
+other host) and `insecure: true` on the client. Nothing enables it implicitly. The example
+applications and the integration suite run over HTTPS with a self-signed certificate.
 
 ## Reporting
 

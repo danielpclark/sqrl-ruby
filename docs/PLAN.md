@@ -116,7 +116,10 @@ appends `0x00` and the Alt-ID to the site key.
 
 ### 2.2 Reference implementation to port
 
-`danielpclark/SQRL-extension` (Rust, MIT) is the authoritative source for this port. Its
+GRC's specification documents are the authority. `danielpclark/SQRL-extension` (Rust, MIT)
+is one careful reading of them and the practical source for this port; where it adds
+conveniences beyond the specification (its `qrl://` loopback test mode, posing an `ask`
+only to known identities) those are project choices, not protocol. Its
 `crates/sqrl-core` crate implements every piece above and is verified against every
 published test vector, and its reference server (`sqrl-core/src/server.rs`, feature
 `server`) defines the server behaviour this plan reproduces, including nut single-use,
@@ -267,7 +270,8 @@ Invariants carried over from the reference client:
 - A response with TIF bits outside `0x3FF` aborts the transaction.
 - `qry` must be a server-relative path on the original host; `url=` must point at the same
   host; `ask` button URLs are forced onto the site origin.
-- `qrl://` is accepted for loopback hosts only.
+- Only `sqrl://` (HTTPS) is accepted by default. The draft-era `qrl://` is parsed only in
+  the explicit loopback-only `insecure` testing mode.
 - Previous identities are offered most-recent first; re-keying sends the new `suk`/`vuk`
   and a `urs` signed with the previous identity's URSK.
 
@@ -324,8 +328,9 @@ Design decisions that differ from the minimal Rust test server, on purpose:
   `sqrl://` URL from one browser cannot complete a login into another browser's session
   (the "login the victim into the attacker's account" class of issue). When `IPS_MATCHED`
   is absent and the client did not send `noiptest`, the handler refuses, as the spec
-  requires; the integration additionally lets the site require `IPS_MATCHED` for
-  non-CPS completions.
+  requires. The pending login records whether the IPs matched; an optional, off-by-default
+  `poll_requires_ip_match` lets a site refuse non-CPS completions without a match (it also
+  blocks legitimate phone logins from another network, hence off).
 - **Nut single-use is atomic** at the store level (compare-and-set / `UPDATE … WHERE
   used_at IS NULL` returning one row), not read-then-write.
 
@@ -648,7 +653,8 @@ debugging and for the conformance reports.
 ### 7.4 Page discovery
 
 Given an HTML page, the agent finds the login link in this order: `a[href^="sqrl://"]`
-(and `qrl://` on loopback hosts), `href="http://localhost:25519/<base64url>"` CPS-style
+(and, in the insecure testing mode, `qrl://` on loopback hosts),
+`href="http://localhost:25519/<base64url>"` CPS-style
 links (decoded back to the `sqrl://` URL), `data-sqrl-url` attributes, and finally any
 `sqrl://` URL in the page text. Parsing uses a small tolerant scanner by default and
 Nokogiri when it is available. Sites that only show a QR image are out of scope for the
@@ -854,7 +860,8 @@ Carried into code review for every milestone.
 - [ ] CPS landing tokens are random, single use, short-lived and tied to the browser
       session that started the login; the status endpoint reveals nothing to other sessions.
 - [ ] The SQRL endpoint is exempt from CSRF/origin checks but nothing else is.
-- [ ] Client-side: TIF bits outside `0x3FF` abort; `qrl://` only for loopback; the CPS
+- [ ] Client-side: TIF bits outside `0x3FF` abort; plain HTTP only in the explicit
+      loopback testing mode; the CPS
       `url=` host is checked before following it; cookies are never sent cross-host.
 - [ ] Secrets never reach logs, exceptions or `inspect`; transcripts are redacted.
 - [ ] Store adapters document their atomicity guarantees; non-atomic caches are refused in
@@ -1042,6 +1049,19 @@ SQRL carries account-policy signals that phase 1 stored but did not act on.
 
 P1 and P2 run together (they touch different files); P3.1 and P3.2 can start at once; P3.3
 after P2.2 (it adds an endpoint); P3.4 and P4 after everything else is green.
+
+### Decisions revisited after phase 2 (2026-10-20)
+
+- **`qrl://` is not SQRL.** Final SQRL has one scheme, `sqrl://`, meaning HTTPS. The
+  automatic `qrl://`-on-loopback behaviour inherited from the extension's test server was
+  removed from every layer; plain HTTP is an explicit, loopback-only, warned-about testing
+  mode (`insecure_http: true` server-side, `insecure: true` client-side). The examples and
+  the integration suite run over HTTPS with a self-signed certificate.
+- **IP restriction is not a default.** `poll_requires_ip_match` (a hardening beyond the
+  spec) defaults to off because it also blocks legitimate other-network phone logins; the
+  protocol's own `require_ip_match` stays on.
+- **Authority.** GRC's documents are the authority; the Rust implementation is one reading
+  of them (§2.2 updated).
 
 ### Status (2026-10-20, end of phase 2)
 
