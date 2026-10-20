@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Sign in with SQRL</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 36em; margin: 3em auto; line-height: 1.5; padding: 0 1em; }
+      .sqrl-login__link { display: inline-block; padding: .6em 1.2em; background: #007cc3; color: #fff; border-radius: .4em; text-decoration: none; }
+      .sqrl-login__qr svg { max-width: 16em; height: auto; display: block; margin: 1em 0; }
+      .sqrl-alert { color: #b00020; }
+    </style>
+  </head>
+  <body>
+    <%= yield %>
+  </body>
+</html>

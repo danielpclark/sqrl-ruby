@@ -1,0 +1,55 @@
+# frozen_string_literal: true
+
+class CreateSQRLTables < ActiveRecord::Migration<%= migration_version %>
+  def change
+    create_table :sqrl_identities do |t|
+      t.string :idk, null: false
+      t.string :suk
+      t.string :vuk
+      t.boolean :disabled, null: false, default: false
+      t.boolean :sqrlonly, null: false, default: false
+      t.boolean :hardlock, null: false, default: false
+      t.string :ins
+      t.integer :logins, null: false, default: 0
+      t.string :user_type
+      t.bigint :user_id
+      t.string :superseded_by
+      t.datetime :last_login_at
+      t.timestamps
+    end
+    add_index :sqrl_identities, :idk, unique: true
+    add_index :sqrl_identities, %i[user_type user_id]
+
+    create_table :sqrl_nuts do |t|
+      t.string :nut, null: false
+      t.string :pending_login_id, null: false
+      t.text :expected_server, null: false
+      t.string :ip
+      t.string :bound_idk
+      t.datetime :expires_at
+      t.datetime :used_at
+      t.datetime :created_at, null: false
+    end
+    add_index :sqrl_nuts, :nut, unique: true
+    add_index :sqrl_nuts, :expires_at
+
+    create_table :sqrl_pending_logins do |t|
+      t.string :login_id, null: false
+      t.string :authenticated_idk
+      t.datetime :authenticated_at
+      t.integer :btn
+      t.boolean :asked, null: false, default: false
+      t.string :last_command
+      t.string :cps_token
+      t.datetime :cps_token_expires_at
+      t.string :ip
+      t.string :return_to
+      t.string :link_user_ref
+      t.datetime :expires_at
+      t.timestamps
+    end
+    add_index :sqrl_pending_logins, :login_id, unique: true
+    add_index :sqrl_pending_logins, :cps_token, unique: true
+    add_index :sqrl_pending_logins, :expires_at
+  end
+end

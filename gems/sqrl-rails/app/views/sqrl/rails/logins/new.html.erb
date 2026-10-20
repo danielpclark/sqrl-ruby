@@ -1,0 +1,3 @@
+<h1>Sign in with SQRL</h1>
+<% if flash[:alert] %><p class="sqrl-alert" role="alert"><%= flash[:alert] %></p><% end %>
+<%= sqrl_login_block(return_to: @return_to) %>
