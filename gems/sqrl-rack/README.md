@@ -32,7 +32,7 @@ token) and `GET /sqrl/sqrl.js`. Everything else gets `env["sqrl.server"]`, a
 
 Every `SQRL::Server::Config` option is accepted (`on_unknown_identity`, `ask`, `sin`,
 `require_ip_match`, `nut_ttl`, `cps_token_ttl`, ...). Without `host:` the request host is
-used, and plain-http loopback requests get `qrl://` URLs for development.
+used. URLs are always `sqrl://` (HTTPS); see "Testing without TLS" below.
 
 ## Sinatra
 
@@ -93,8 +93,32 @@ is given (strings, with or without port, or regexps), and keeps per-host state f
 use SQRL::Rack::Middleware, stores: stores, allowed_hosts: ["example.com", /\A[a-z0-9-]+\.example\.com\z/]
 ```
 
-Plain-http loopback requests (`localhost`, `127.0.0.0/8`, `[::1]`) get `qrl://` URLs for
-development; anything else is always `sqrl://`.
+The scheme is never derived from the request: a site served over plain http (for example
+with TLS terminated upstream) still issues `sqrl://`.
+
+## Testing without TLS
+
+`qrl://` (plain http) is not part of the final SQRL specification and real SQRL clients do
+not accept it. The browser extension's test server, and the `sqrl-client` gem with
+`insecure: true`, do, so a site can be tried on `localhost` without a certificate:
+
+```ruby
+use SQRL::Rack::Middleware, stores: stores, host: "localhost:9292", insecure_http: true
+```
+
+`insecure_http` is refused for any host that is not loopback and logs a warning once. For
+anything a real client will scan, serve HTTPS (a self-signed certificate is fine in
+development).
+
+## Poll completions and IP matching
+
+The protocol-level check (`require_ip_match`, on by default) refuses a client whose IP
+differs from the browser's unless the client sends `noiptest`. A separate, optional
+hardening, `poll_requires_ip_match: true`, additionally refuses to complete a login
+through the browser's own cookie (the poll path, no CPS token) when the client's IP did
+not match. It is off by default because a phone on another network completing a login
+through the page's poller is a normal SQRL use; turn it on for sites that only expect
+same-network logins.
 
 ## Rate limiting and pruning
 

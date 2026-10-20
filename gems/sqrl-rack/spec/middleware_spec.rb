@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "logger"
+require "stringio"
+
 require "securerandom"
 
 RSpec.describe SQRL::Rack::Middleware do
@@ -141,23 +144,23 @@ RSpec.describe SQRL::Rack::Middleware do
       browser
     end
 
-    it "is not completable through the poll by default" do
+    it "is completable through the poll by default (a phone on another network is normal)" do
       browser = ident_from_elsewhere
       browser.get("/sqrl/status")
-      expect(JSON.parse(browser.last_response.body)).to eq("authenticated" => false)
+      expect(JSON.parse(browser.last_response.body)["authenticated"]).to be(true)
       browser.get("/sqrl/callback")
-      expect(browser.last_response.status).to eq(403)
+      expect(browser.last_response.status).to eq(303)
     end
 
-    context "when the site opts out of the check" do
-      let(:middleware_options) { super().merge(poll_requires_ip_match: false) }
+    context "when the site opts into poll_requires_ip_match" do
+      let(:middleware_options) { super().merge(poll_requires_ip_match: true) }
 
-      it "is completable through the poll" do
+      it "is refused through the poll" do
         browser = ident_from_elsewhere
         browser.get("/sqrl/status")
-        expect(JSON.parse(browser.last_response.body)["authenticated"]).to be(true)
+        expect(JSON.parse(browser.last_response.body)).to eq("authenticated" => false)
         browser.get("/sqrl/callback")
-        expect(browser.last_response.status).to eq(303)
+        expect(browser.last_response.status).to eq(403)
       end
     end
   end
@@ -257,11 +260,33 @@ RSpec.describe SQRL::Rack::Middleware do
       expect(stores.identities.count).to eq(0)
     end
 
-    it "derives host and qrl scheme from a plain-http loopback request" do
+    it "issues sqrl:// even for a plain-http loopback request (the scheme is never guessed)" do
       middleware_options.delete(:host)
       browser = Rack::Test::Session.new(Rack::MockSession.new(app, "localhost"))
       browser.get("/login", {}, { "REMOTE_ADDR" => "127.0.0.1" })
+      expect(login_url_from(browser.last_response.body)).to start_with("sqrl://localhost/sqrl/cli?nut=")
+    end
+
+    it "issues qrl:// only in the explicit insecure_http testing mode, and only for loopback hosts" do
+      SQRL::Server::Config.reset_warnings!
+      opts = middleware_options.merge(host: "localhost", insecure_http: true, logger: Logger.new(log = StringIO.new))
+      insecure = Rack::Builder.new do
+        use Rack::Session::Cookie, secret: "x" * 64, same_site: :lax
+        use SQRL::Rack::Middleware, opts
+        run ->(env) { [200, { "content-type" => "text/html" }, [env["sqrl.server"].login_block]] }
+      end.to_app
+      browser = Rack::Test::Session.new(Rack::MockSession.new(insecure, "localhost"))
+      browser.get("/", {}, { "REMOTE_ADDR" => "127.0.0.1" })
       expect(login_url_from(browser.last_response.body)).to start_with("qrl://localhost/sqrl/cli?nut=")
+      expect(log.string).to include("insecure_http is a loopback-only testing mode")
+
+      bad = Rack::Builder.new do
+        use Rack::Session::Cookie, secret: "x" * 64, same_site: :lax
+        use SQRL::Rack::Middleware, opts.merge(host: "example.com")
+        run ->(env) { [200, { "content-type" => "text/html" }, [env["sqrl.server"].login_block]] }
+      end.to_app
+      browser = Rack::Test::Session.new(Rack::MockSession.new(bad, "example.com"))
+      expect { browser.get("/") }.to raise_error(ArgumentError, /loopback/)
     end
 
     it "accepts options from a callable, resolved on first use" do

@@ -23,7 +23,7 @@ module SiteHelpers
   def ephemeral(seed = nil) = SQRL::Client::Identity.ephemeral(seed)
 
   def new_agent(identity = ephemeral, **opts)
-    SQRL::Client::Agent.new(identity: identity, **opts)
+    SQRL::Client::Agent.new(identity: identity, insecure: true, **opts)
   end
 end
 

@@ -40,7 +40,7 @@ RSpec.describe SQRL::Client::Agent do
   end
 
   it "accepts a sqrl:// URL or a localhost:25519 CPS link as the target" do
-    page = SQRL::Client::Transport.new.get(site.login_url)
+    page = SQRL::Client::Transport.new(allow_http: :loopback).get(site.login_url)
     url = page.body[/data-sqrl-url="([^"]+)"/, 1].gsub("&amp;", "&")
     agent = new_agent(ephemeral("carol"), poll: false)
     expect(agent.login(url)).to be_authenticated
@@ -157,7 +157,7 @@ RSpec.describe SQRL::Client::Agent do
 
   it "recovers from a transient error with a fresh query" do
     id = ephemeral("jack")
-    page = SQRL::Client::Transport.new.get(site.login_url)
+    page = SQRL::Client::Transport.new(allow_http: :loopback).get(site.login_url)
     url = page.body[/data-sqrl-url="([^"]+)"/, 1].gsub("&amp;", "&")
     stale = url.sub(/nut=[^&]+/, "nut=bogus")
     result = new_agent(id, poll: false).login(stale)
@@ -173,7 +173,7 @@ RSpec.describe SQRL::Client::Agent do
         @first ||= [url, body]
         super(@first[0], @first[1], headers)
       end
-    end.new
+    end.new(allow_http: :loopback)
     expect { new_agent(ephemeral, transport: broken, max_transient_retries: 1).login(stale) }
       .to raise_error(SQRL::Client::LoginFailed) { |e| expect(e.reason).to eq(:transient) }
   end

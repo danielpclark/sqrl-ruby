@@ -59,7 +59,8 @@ module SQRL
       # @return [SQRL::Rack::HostResolver]
       def host_resolver
         @mutex.synchronize do
-          @host_resolver ||= SQRL::Rack::HostResolver.new(host: config.host.presence, scheme: config.scheme.presence,
+          scheme = config.scheme.presence || (config.insecure_http ? "qrl" : nil)
+          @host_resolver ||= SQRL::Rack::HostResolver.new(host: config.host.presence, scheme: scheme,
                                                           allowed_hosts: config.allowed_hosts,
                                                           limit: config.host_cache_limit,
                                                           logger: config.logger || ::Rails.logger)
@@ -178,6 +179,7 @@ module SQRL
         SQRL::Rack::Endpoint.new(handler: handler, session_key: config.session_key, identity_key: config.identity_key,
                                  status_path: ENGINE_PATHS[:status], callback_path: ENGINE_PATHS[:callback],
                                  script_path: ENGINE_PATHS[:script], refresh_path: ENGINE_PATHS[:refresh],
+                                 poll_requires_ip_match: config.poll_requires_ip_match ? true : false,
                                  ip: config.ip || method(:client_ip))
       end
 

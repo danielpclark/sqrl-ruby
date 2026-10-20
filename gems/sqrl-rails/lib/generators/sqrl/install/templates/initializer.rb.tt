@@ -40,6 +40,17 @@ Rails.application.config.sqrl.tap do |sqrl|
   # Protocol options (see SQRL::Server::Config): sqrl.nut_ttl, sqrl.cps_token_ttl,
   # sqrl.require_ip_match, sqrl.path_extension, sqrl.on_authenticated.
 
+  # Optional hardening: refuse to complete a login through the page's poller (no CPS
+  # token) when the SQRL client's IP did not match the browser's. Off by default because
+  # a phone on another network is a normal SQRL login.
+  # sqrl.poll_requires_ip_match = true
+
+  # Loopback-only testing mode: issue qrl:// (plain http) URLs so the browser extension's
+  # test client can log in to `bin/rails server` without TLS. qrl:// is not part of the
+  # final SQRL specification and real clients refuse it; it is rejected for any host that
+  # is not loopback.
+  # sqrl.insecure_http = Rails.env.development? && ENV["SQRL_INSECURE_HTTP"].present?
+
   # Ask the user a question on every login (the client shows it with the buttons; the
   # answer arrives as btn=1 or btn=2). ask_deny_button names the button that refuses
   # the login. SQRL_ASK=1 turns the example question on for testing.

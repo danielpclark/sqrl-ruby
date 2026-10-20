@@ -60,7 +60,8 @@ foreign, reused or expired token) or `sqrl_disabled`.
 | --- | --- | --- |
 | `stores:` | process-wide in-memory stores (development only) | `SQRL::Server::Stores` (nuts, identities, pending logins) |
 | `host:` | request host | host (with port) placed in `sqrl://` URLs |
-| `scheme:` | `sqrl` (`qrl` on plain-http loopback) | URL scheme issued |
+| `insecure_http:` | `false` | loopback-only testing mode issuing `qrl://` (plain http) URLs; not part of SQRL, refused for other hosts |
+| `poll_requires_ip_match:` | `false` | optional hardening: refuse poll (cookie) completions when the client's IP did not match the browser's |
 | `path_extension:` | `nil` | `x=N` to scope identities to a path prefix |
 | `nut_ttl:` / `cps_token_ttl:` | 300 / 60 seconds | lifetimes |
 | `require_ip_match:` | `true` | refuse clients whose IP differs from the browser's unless they send `noiptest` |

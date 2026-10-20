@@ -275,15 +275,20 @@ RSpec.describe OmniAuth::Strategies::SQRL do
       expect(auth_hash(browser)["uid"]).to eq(session.idk_b64)
     end
 
-    it "issues qrl:// URLs for plain-http loopback hosts and sqrl:// otherwise" do
+    it "issues sqrl:// URLs regardless of the request scheme, and qrl:// only with insecure_http: true" do
       app = build_app(stores: stores)
       browser = Rack::Test::Session.new(Rack::MockSession.new(app, "localhost"))
       browser.post("/auth/sqrl", {}, { "REMOTE_ADDR" => "127.0.0.1" })
-      expect(login_url_from(browser.last_response.body)).to start_with("qrl://localhost/auth/sqrl/cli?nut=")
+      expect(login_url_from(browser.last_response.body)).to start_with("sqrl://localhost/auth/sqrl/cli?nut=")
 
       browser = Rack::Test::Session.new(Rack::MockSession.new(app, "site.test"))
       browser.post("/auth/sqrl", {}, { "REMOTE_ADDR" => "127.0.0.1" })
       expect(login_url_from(browser.last_response.body)).to start_with("sqrl://site.test/auth/sqrl/cli?nut=")
+
+      insecure = build_app(stores: stores, host: "localhost", insecure_http: true)
+      browser = Rack::Test::Session.new(Rack::MockSession.new(insecure, "localhost"))
+      browser.post("/auth/sqrl", {}, { "REMOTE_ADDR" => "127.0.0.1" })
+      expect(login_url_from(browser.last_response.body)).to start_with("qrl://localhost/auth/sqrl/cli?nut=")
     end
 
     context "without a stores: option" do

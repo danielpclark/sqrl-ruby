@@ -29,7 +29,9 @@ class TestSite
     @server.add_tcp_listener(@host, 0)
     @port = @server.connected_ports.first
     @base_url = "http://#{@host}:#{@port}"
-    @config = SQRL::Server::Config.new(host: "#{@host}:#{@port}", scheme: "qrl",
+    # The spec site is plain http on loopback, so it runs in the insecure_http testing mode;
+    # agents and transports in the specs opt in with insecure: true / allow_http: :loopback.
+    @config = SQRL::Server::Config.new(host: "#{@host}:#{@port}", insecure_http: true,
                                        on_authenticated: ->(*a) { @on_authenticated.each { |cb| cb.call(*a) } },
                                        **@extra_config)
     @handler = SQRL::Server::Handler.new(config: @config, stores: @stores)

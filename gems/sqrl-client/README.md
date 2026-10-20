@@ -42,7 +42,7 @@ agent = SQRL::Client::Agent.new(
   options: { sqrlonly: false, hardlock: false, noiptest: false },
   alt_id: nil,
   ask_handler: ->(ask) { ask.buttons.index { |b| b.label =~ /allow/i }.to_i + 1 },
-  transport: SQRL::Client::Transport.new(allow_http: :loopback)
+  insecure: false            # true: accept plain http and qrl:// for loopback test servers only
 )
 
 agent.login(url)                       # query → (ask) → ident; creates / logs in / re-keys as the site answers
@@ -60,8 +60,14 @@ the TIF history, the cancel URL and the cookie jar. Failures raise `LoginFailed`
 
 Transient errors are retried with the fresh nut, previous identities are offered in turn
 (`PREVIOUS_ID_MATCH` re-keys the account), `sin`/`ins` and `pins` are answered, and the CPS
-`url=` is validated to point at the site before it is followed. Plain `http` is accepted
-only for loopback hosts unless `allow_http: true`.
+`url=` is validated to point at the site before it is followed.
+
+SQRL is `sqrl://` over HTTPS, and that is all the agent speaks by default. `insecure: true`
+(CLI: `--insecure`) is a loopback-only testing mode that also accepts plain-http pages and
+`qrl://` links, which the browser extension's test server and this repository's own spec
+site use; `qrl://` is not part of the final SQRL specification and real clients refuse
+it. A self-signed development certificate is trusted with `Transport.new(ca_file:)`
+(CLI: `--ca-file`); `--no-verify-tls` turns verification off altogether.
 
 ## Capybara
 

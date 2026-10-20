@@ -16,7 +16,8 @@ module SQRL
     # +env["sqrl.server"]+ (a {Facade}) to everything else.
     #
     # Options: every {Server::Config} keyword (+host+ defaults to the request host;
-    # +scheme+ defaults to +sqrl+, or +qrl+ for plain-http loopback requests) plus
+    # +scheme+ is always +sqrl+; +insecure_http: true+ switches a loopback-only site to
+    # +qrl://+ for testing with the browser extension's test server) plus
     # +stores:+, +status_path:+, +script_path:+, +session_key:+, +identity_key:+,
     # +ip:+ (callable resolving the client IP), +on_login:+ (callable
     # +(env, identity, pending_login)+), +after_login:+ (path, URL or callable
@@ -90,7 +91,8 @@ module SQRL
 
         opts = options # resolved outside the lock: it takes the same mutex
         @mutex.synchronize do
-          @host_resolver ||= HostResolver.new(host: opts[:host], scheme: opts[:scheme],
+          scheme = opts[:scheme] || (opts[:insecure_http] ? "qrl" : nil)
+          @host_resolver ||= HostResolver.new(host: opts[:host], scheme: scheme,
                                               allowed_hosts: opts[:allowed_hosts],
                                               limit: opts[:host_cache_limit], logger: opts[:logger])
         end
@@ -118,7 +120,7 @@ module SQRL
         Endpoint.new(handler: handler, session_key: options[:session_key], identity_key: options[:identity_key],
                      status_path: options[:status_path], callback_path: options[:callback_path],
                      script_path: options[:script_path], refresh_path: options[:refresh_path], ip: options[:ip],
-                     poll_requires_ip_match: options.fetch(:poll_requires_ip_match, true))
+                     poll_requires_ip_match: options.fetch(:poll_requires_ip_match, false))
       end
 
       def complete(endpoint, request)

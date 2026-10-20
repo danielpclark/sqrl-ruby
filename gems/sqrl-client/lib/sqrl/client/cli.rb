@@ -54,8 +54,10 @@ module SQRL
           --sqrlonly / --hardlock / --noiptest
           --cookies-out FILE    write the session cookies after login
           --cookies-format F    netscape (default) or json
-          --allow-http          allow plain http for non-loopback hosts (testing only)
-          --insecure            do not verify TLS certificates (testing only)
+          --insecure            loopback testing mode: accept plain http and qrl:// URLs
+                                (not part of SQRL; for the extension's test server)
+          --no-verify-tls       do not verify TLS certificates (testing only)
+          --ca-file FILE        trust this CA bundle or self-signed certificate
           --json                machine-readable output
           -v, --verbose         protocol trace on stderr
 
@@ -272,8 +274,9 @@ module SQRL
           o.on("--noiptest") { opts[:options][:noiptest] = true }
           o.on("--cookies-out FILE") { |v| opts[:cookies_out] = v }
           o.on("--cookies-format FORMAT", %w[netscape json]) { |v| opts[:cookies_format] = v }
-          o.on("--allow-http") { opts[:allow_http] = true }
           o.on("--insecure") { opts[:insecure] = true }
+          o.on("--no-verify-tls") { opts[:verify_tls] = false }
+          o.on("--ca-file FILE") { |v| opts[:ca_file] = v }
           o.on("--json") { opts[:json] = true }
           o.on("-v", "--verbose") { opts[:verbose] = true }
         end
@@ -283,10 +286,10 @@ module SQRL
 
         identity = load_identity(**opts.slice(:identity, :password, :iuk_hex))
         logger = opts[:verbose] ? stderr_logger : nil
-        transport = Transport.new(allow_http: opts[:allow_http] ? true : :loopback, verify_tls: !opts[:insecure],
-                                  logger: logger)
+        transport = Transport.new(allow_http: opts[:insecure] ? :loopback : false, verify_tls: opts.fetch(:verify_tls, true),
+                                  ca_file: opts[:ca_file], logger: logger)
         agent = Agent.new(identity: identity, transport: transport, cps: opts[:cps], unknown_site: opts[:unknown_site],
-                          options: opts[:options], alt_id: opts[:alt_id], logger: logger,
+                          options: opts[:options], alt_id: opts[:alt_id], logger: logger, insecure: opts[:insecure],
                           ask_handler: opts.key?(:ask) ? ->(_ask) { opts[:ask] } : nil)
         result =
           case command
@@ -335,8 +338,9 @@ module SQRL
           end
           o.on("--only CASES") { |v| opts[:only] = v.split(",").map(&:strip) }
           o.on("--ask-button N", Integer) { |v| opts[:ask_button] = v }
-          o.on("--allow-http") { opts[:allow_http] = true }
           o.on("--insecure") { opts[:insecure] = true }
+          o.on("--no-verify-tls") { opts[:verify_tls] = false }
+          o.on("--ca-file FILE") { |v| opts[:ca_file] = v }
           o.on("--json") { opts[:json] = true }
           o.on("-v", "--verbose") { opts[:verbose] = true }
         end
@@ -347,11 +351,12 @@ module SQRL
         require "sqrl/client/conformance"
         logger = opts[:verbose] ? stderr_logger : nil
         transport_factory = lambda do
-          Transport.new(allow_http: opts[:allow_http] ? true : :loopback, verify_tls: !opts[:insecure], logger: logger)
+          Transport.new(allow_http: opts[:insecure] ? :loopback : false, verify_tls: opts.fetch(:verify_tls, true),
+                        ca_file: opts[:ca_file], logger: logger)
         end
         runner = Conformance::Runner.new(login_url: login_url, features: opts[:features], only: opts[:only],
                                          ask_button: opts[:ask_button], transport_factory: transport_factory,
-                                         logger: logger)
+                                         logger: logger, insecure: opts[:insecure] ? true : false)
         report = runner.run
         File.write(opts[:report], report.to_junit_xml) if opts[:report]
         @out.puts(opts[:json] ? JSON.generate(report.to_h) : report.to_s)

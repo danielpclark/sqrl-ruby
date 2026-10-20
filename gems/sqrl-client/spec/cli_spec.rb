@@ -36,39 +36,39 @@ RSpec.describe SQRL::Client::CLI do
   it "logs in with an ephemeral identity, writes cookies and emits JSON" do
     Dir.mktmpdir do |dir|
       jar = File.join(dir, "cookies.txt")
-      code, out, err = run_cli("login", site.login_url, "--iuk-hex", iuk_hex, "--cookies-out", jar)
+      code, out, err = run_cli("login", site.login_url, "--insecure", "--iuk-hex", iuk_hex, "--cookies-out", jar)
       expect(err).to eq("")
       expect(code).to eq(0)
       expect(out).to include("ident: known", "authenticated: true (account created)", "landing: HTTP 200")
       expect(File.read(jar)).to include("\tuser\t")
 
-      code, out, = run_cli("login", site.login_url, "--json", "--no-cps", env: { "SQRL_IUK_HEX" => iuk_hex })
+      code, out, = run_cli("login", site.login_url, "--insecure", "--json", "--no-cps", env: { "SQRL_IUK_HEX" => iuk_hex })
       expect(code).to eq(0)
       data = JSON.parse(out)
       expect(data).to include("command" => "ident", "authenticated" => true, "created" => false)
 
-      code, out, = run_cli("query", site.login_url, "--iuk-hex", iuk_hex)
+      code, out, = run_cli("query", site.login_url, "--insecure", "--iuk-hex", iuk_hex)
       expect(code).to eq(0)
       expect(out).to include("query: known")
 
       jar_json = File.join(dir, "cookies.json")
-      code, = run_cli("disable", site.login_url, "--iuk-hex", iuk_hex, "--cookies-out", jar_json, "--cookies-format",
+      code, = run_cli("disable", site.login_url, "--insecure", "--iuk-hex", iuk_hex, "--cookies-out", jar_json, "--cookies-format",
                       "json")
       expect(code).to eq(0)
       expect(JSON.parse(File.read(jar_json))).to be_an(Array)
-      code, _, err = run_cli("login", site.login_url, "--iuk-hex", iuk_hex)
+      code, _, err = run_cli("login", site.login_url, "--insecure", "--iuk-hex", iuk_hex)
       expect(code).to eq(1)
       expect(err).to include("disabled")
-      expect(run_cli("enable", site.login_url, "--iuk-hex", iuk_hex).first).to eq(0)
-      expect(run_cli("remove", site.login_url, "--iuk-hex", iuk_hex).first).to eq(0)
+      expect(run_cli("enable", site.login_url, "--insecure", "--iuk-hex", iuk_hex).first).to eq(0)
+      expect(run_cli("remove", site.login_url, "--insecure", "--iuk-hex", iuk_hex).first).to eq(0)
       expect(site.identity_count).to eq(0)
     end
   end
 
   it "maps failures to exit codes" do
-    expect(run_cli("login", site.login_url, "--iuk-hex", iuk_hex, "--refuse-unknown").first).to eq(1)
+    expect(run_cli("login", site.login_url, "--insecure", "--iuk-hex", iuk_hex, "--refuse-unknown").first).to eq(1)
     expect(run_cli("login", "http://127.0.0.1:1/login", "--iuk-hex", iuk_hex).first).to eq(2)
-    expect(run_cli("login", site.login_url).first).to eq(3) # no identity
+    expect(run_cli("login", site.login_url, "--insecure").first).to eq(3) # no identity
   end
 
   it "creates, shows and uses a file identity" do
@@ -81,13 +81,13 @@ RSpec.describe SQRL::Client::CLI do
       expect(info["rescue_code"]).to match(/\A\d{4}(-\d{4}){5}\z/)
       expect(run_cli("identity", "show", "--identity", path, "--password",
                      "pw")).to match([0, /fingerprint: #{info["fingerprint"]}/, ""])
-      code, out, = run_cli("login", site.login_url, "--identity", path, "--password", "pw")
+      code, out, = run_cli("login", site.login_url, "--insecure", "--identity", path, "--password", "pw")
       expect(code).to eq(0)
       expect(out).to include("authenticated: true")
       # enable needs the rescue code for a file identity
-      run_cli("disable", site.login_url, "--identity", path, "--password", "pw")
-      expect(run_cli("enable", site.login_url, "--identity", path, "--password", "pw").first).to eq(1)
-      expect(run_cli("enable", site.login_url, "--identity", path, "--password", "pw", "--rescue-code",
+      run_cli("disable", site.login_url, "--insecure", "--identity", path, "--password", "pw")
+      expect(run_cli("enable", site.login_url, "--insecure", "--identity", path, "--password", "pw").first).to eq(1)
+      expect(run_cli("enable", site.login_url, "--insecure", "--identity", path, "--password", "pw", "--rescue-code",
                      info["rescue_code"]).first).to eq(0)
       expect(run_cli("identity", "create").first).to eq(3)
     end
@@ -129,7 +129,7 @@ RSpec.describe SQRL::Client::CLI do
       expect(run_cli("identity", "show", "--identity", path, "--password", "pw").first).to eq(1)
       expect(run_cli("identity", "show", "--identity", path, "--password", "pw3").first).to eq(0)
 
-      first = run_cli("login", site.login_url, "--identity", path, "--password", "pw3")
+      first = run_cli("login", site.login_url, "--insecure", "--identity", path, "--password", "pw3")
       expect(first.first).to eq(0)
 
       expect(run_cli("identity", "rekey", "--identity", path, "--password", "pw3").first).to eq(3) # needs the rescue code
@@ -146,7 +146,7 @@ RSpec.describe SQRL::Client::CLI do
                                     "previous" => [{ "index" => 0,
                                                      "fingerprint" => created["fingerprint"] }])
 
-      code, out, = run_cli("login", site.login_url, "--identity", path, "--password", "pw3")
+      code, out, = run_cli("login", site.login_url, "--insecure", "--identity", path, "--password", "pw3")
       expect(code).to eq(0)
       expect(out).to include("account re-keyed")
       # the old rescue code no longer unlocks the file
@@ -158,7 +158,7 @@ RSpec.describe SQRL::Client::CLI do
   it "runs the conformance suite and writes a JUnit report" do
     Dir.mktmpdir do |dir|
       report = File.join(dir, "junit.xml")
-      code, out, = run_cli("conformance", site.login_url, "--only",
+      code, out, = run_cli("conformance", site.login_url, "--insecure", "--only",
                            "create_account,login_existing,nut_replay_rejected", "--report", report)
       expect(code).to eq(0)
       expect(out).to include("PASS  happy/create_account", "3 passed, 0 failed")
@@ -171,7 +171,7 @@ RSpec.describe SQRL::Client::CLI do
     core = File.expand_path("../../sqrl-core/lib", __dir__)
     lib = File.expand_path("../lib", __dir__)
     out, err, status = Open3.capture3({ "SQRL_IUK_HEX" => iuk_hex }, RbConfig.ruby, "-I", core, "-I", lib, exe,
-                                      "login", site.login_url, "--json")
+                                      "login", site.login_url, "--insecure", "--json")
     expect(err).to eq("")
     expect(status.exitstatus).to eq(0)
     expect(JSON.parse(out)["authenticated"]).to be(true)

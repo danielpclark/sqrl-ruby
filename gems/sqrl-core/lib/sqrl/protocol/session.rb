@@ -44,6 +44,9 @@ module SQRL
 
     attr_reader :url, :last_command
 
+    # Whether plain-http (+qrl://+) URLs were accepted for this session.
+    def insecure? = @insecure
+
     # @param identity [UnlockedIdentity]
     # @param url [URL]
     # @param options [ClientOptions]
@@ -51,10 +54,18 @@ module SQRL
     #   the same site
     # @param lock_factory [#call, nil] overrides SUK/VUK generation (tests only); receives
     #   the ILK and returns an {Identity::ServerLock}
-    def initialize(identity, url, options: ClientOptions.new, alt_id: nil, lock_factory: nil)
+    # +insecure: true+ accepts a +qrl://+ (plain http, loopback-only) URL, which is not part
+    # of the final SQRL specification; by default such URLs are refused.
+    def initialize(identity, url, options: ClientOptions.new, alt_id: nil, lock_factory: nil, insecure: false)
       raise ArgumentError, "identity must be an UnlockedIdentity" unless identity.is_a?(UnlockedIdentity)
 
       url = URL.parse(url) unless url.is_a?(URL)
+      if url.scheme == "qrl" && !insecure
+        raise ProtocolError, "qrl:// (plain http) URLs are not part of SQRL; pass insecure: true to accept " \
+                             "them for loopback testing"
+      end
+
+      @insecure = insecure ? true : false
       @identity = identity
       @url = url
       @site_key = url.site_key_bytes(alt_id).freeze

@@ -2,7 +2,7 @@
  * sqrl.js - browser side of SQRL login for the sqrl-rack / sqrl-rails gems.
  *
  * Attaches to every element with [data-sqrl-login]. Attributes:
- *   data-sqrl-url      the sqrl:// (or qrl://) login URL
+ *   data-sqrl-url      the sqrl:// login URL
  *   data-sqrl-status   URL of the cookie-bound status poll endpoint
  *   data-sqrl-refresh  URL of the JSON endpoint that hands out a fresh login URL (optional)
  *   data-sqrl-poll     poll interval in milliseconds (default 2000)

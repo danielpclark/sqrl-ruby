@@ -34,6 +34,15 @@ iuk = file.unlock_iuk("1198-8748-7132-2838-8318-7570")
 ```
 
 The implementation follows GRC's final specification and reproduces GRC's reference client
-request bodies byte for byte; the specs include every published test vector. See the
+request bodies byte for byte; the specs include every published test vector. GRC's
+documents are the authority; the Rust implementation in
+[SQRL-extension](https://github.com/danielpclark/SQRL-extension) that this port started
+from is one reading of them, and where the two differ the documents win. See the
 repository README and `docs/PLAN.md` for the protocol summary and the store interfaces
 (`SQRL::Server::NutStore`, `IdentityStore`, `PendingLoginStore`).
+
+SQRL URLs are `sqrl://` and mean HTTPS. The `qrl://` scheme from GRC's early drafts (plain
+http) is not part of the final specification: `SQRL::URL` still parses it, but
+`SQRL::Session` refuses it unless created with `insecure: true`, and `SQRL::Server::Config`
+issues it only with `insecure_http: true` for a loopback host. Both exist solely for
+testing against the browser extension's test server without TLS.

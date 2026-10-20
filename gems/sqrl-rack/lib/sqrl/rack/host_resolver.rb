@@ -23,7 +23,8 @@ module SQRL
       attr_reader :host, :scheme, :limit
 
       # @param host [String, nil] the configured public host (with port), or nil to derive
-      # @param scheme [String, nil] +sqrl+ / +qrl+, or nil for +sqrl+ (+qrl+ on plain-http loopback)
+      # @param scheme [String, nil] +sqrl+ (the default and the only standard scheme) or
+      #   +qrl+ for the loopback-only +insecure_http+ testing mode; never derived from the request
       # @param allowed_hosts [Array<String, Regexp>, nil] accepted derived hosts
       # @param limit [Integer] maximum number of distinct derived hosts kept
       # @param logger [#warn, nil] receives the one-time warning; +Kernel#warn+ when nil
@@ -50,7 +51,7 @@ module SQRL
       # @raise [HostNotAllowed] when a derived host is not allowed
       def resolve(request)
         host = configured? ? @host : derived_host(request)
-        [host, @scheme || default_scheme(request, host)]
+        [host, @scheme || "sqrl"]
       end
 
       # Fetch (or build with the block) the cached object for +key+, whose first element
@@ -107,15 +108,6 @@ module SQRL
         message = "[sqrl] host not configured; deriving it from the request (#{host}). Identities are keyed " \
                   "by host, so set host: explicitly in production."
         @logger.respond_to?(:warn) ? @logger.warn(message) : Kernel.warn(message)
-      end
-
-      def default_scheme(request, host)
-        bare = begin
-          URL.split_host_port(host.to_s).first.to_s.downcase
-        rescue FormatError
-          host.to_s.downcase
-        end
-        request.scheme == "http" && URL.loopback?(bare) ? "qrl" : "sqrl"
       end
     end
   end

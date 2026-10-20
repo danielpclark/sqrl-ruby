@@ -106,13 +106,17 @@ module SQRL
       # @param poll [Boolean] for non-CPS logins, poll the site's status URL when one was
       #   discovered
       # @param poll_timeout [Numeric] seconds
+      # +insecure: true+ accepts the loopback-only +qrl://+ (plain http) testing mode and
+      # lets the default transport speak plain http to loopback hosts. Off by default:
+      # SQRL is +sqrl://+ over HTTPS.
       def initialize(identity:, transport: nil, cps: true, follow_cps: true, unknown_site: :create, options: {},
                      alt_id: nil, ask_handler: nil, max_transient_retries: 2, poll: true,
-                     poll_interval: DEFAULT_POLL_INTERVAL, poll_timeout: 10, logger: nil)
+                     poll_interval: DEFAULT_POLL_INTERVAL, poll_timeout: 10, logger: nil, insecure: false)
         raise ArgumentError, "unknown_site must be :create or :refuse" unless %i[create refuse].include?(unknown_site)
 
         @identity = identity
-        @transport = transport || Transport.new(logger: logger)
+        @insecure = insecure ? true : false
+        @transport = transport || Transport.new(logger: logger, allow_http: @insecure ? :loopback : false)
         @cps = cps
         @follow_cps = follow_cps
         @unknown_site = unknown_site
@@ -128,6 +132,9 @@ module SQRL
 
       # The transport, for the bot's own requests after logging in.
       alias http transport
+
+      # Whether plain-http / +qrl://+ loopback testing mode is on.
+      def insecure? = @insecure
 
       # Log in (creating the account, or re-keying it, as the site's answer dictates).
       #
@@ -184,7 +191,8 @@ module SQRL
 
       def run(target, command, rescue_code: nil)
         found = discover(target)
-        session = Session.new(@identity.unlocked, found.sqrl_url, options: client_options, alt_id: @alt_id)
+        session = Session.new(@identity.unlocked, found.sqrl_url, options: client_options, alt_id: @alt_id,
+                                                                  insecure: @insecure)
         ctx = Context.new(found, session)
         transient = 0
 

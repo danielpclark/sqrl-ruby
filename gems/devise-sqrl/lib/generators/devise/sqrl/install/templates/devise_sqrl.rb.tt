@@ -17,7 +17,9 @@ Rails.application.config.sqrl.tap do |sqrl|
   sqrl.stores = :active_record
 
   # Protocol options: sqrl.require_ip_match (true), sqrl.nut_ttl (300 s),
-  # sqrl.cps_token_ttl (60 s), sqrl.path_extension.
+  # sqrl.cps_token_ttl (60 s), sqrl.path_extension, sqrl.poll_requires_ip_match (false;
+  # optional hardening for poll completions) and sqrl.insecure_http (false; loopback-only
+  # qrl:// testing mode, not part of SQRL).
 
   # Ask the user a question on every login; ask_deny_button is the button that refuses
   # it. SQRL_ASK=1 turns the example question on for testing.

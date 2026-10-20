@@ -59,11 +59,15 @@ module SQRL
         # @param success_matcher [#call, nil] see {Site#initialize}
         # @param ask_button [Integer] button to answer an +ask+ with
         # @param only [Array<Symbol>, nil] run only these cases
+        # @param insecure [Boolean] accept the loopback-only +qrl://+ / plain-http testing
+        #   mode (for example the browser extension's test server); off by default
         def initialize(login_url:, identity_factory: -> { Identity.ephemeral }, transport_factory: nil, features: {},
-                       site: nil, success_matcher: nil, ask_button: 1, only: nil, logger: nil)
+                       site: nil, success_matcher: nil, ask_button: 1, only: nil, logger: nil, insecure: false)
           @login_url = login_url
           @identity_factory = identity_factory
-          @transport_factory = transport_factory || -> { Transport.new(logger: logger) }
+          @insecure = insecure ? true : false
+          @transport_factory = transport_factory ||
+                               -> { Transport.new(logger: logger, allow_http: @insecure ? :loopback : false) }
           @features = DEFAULT_FEATURES.merge(features.transform_keys(&:to_sym))
           @site = site || Site.new(login_url: login_url, success_matcher: success_matcher)
           @ask_button = ask_button
@@ -146,7 +150,7 @@ module SQRL
         # Agents answer the site's ask (when the feature is on) with the configured button
         # unless a case supplies its own handler.
         def agent(identity, transport: self.transport, **opts)
-          defaults = { ask_handler: (@features[:ask] ? ->(_ask) { @ask_button } : nil) }
+          defaults = { ask_handler: (@features[:ask] ? ->(_ask) { @ask_button } : nil), insecure: @insecure }
           Agent.new(identity: identity, transport: transport, logger: @logger, **defaults.merge(opts))
         end
 
@@ -333,7 +337,7 @@ module SQRL
         def raw_session(id, options: ClientOptions.new)
           browser = transport
           page = @site.login_page(browser)
-          [Session.new(id.unlocked, page.sqrl_url, options: options), browser, page]
+          [Session.new(id.unlocked, page.sqrl_url, options: options, insecure: @insecure), browser, page]
         end
 
         def raw_post(browser, url, body, ctx, label)
@@ -359,7 +363,7 @@ module SQRL
           browser = transport
           page = @site.login_page(browser)
           bogus = page.sqrl_url.sub(/nut=[^&]+/, "nut=conformance-unknown-nut")
-          session = Session.new(id.unlocked, bogus)
+          session = Session.new(id.unlocked, bogus, insecure: @insecure)
           req = session.query
           resp = raw_post(browser, req.url, req.body, ctx, "unknown nut")
           check(resp.tif.transient_error? || resp.tif.client_failure?,
@@ -382,7 +386,7 @@ module SQRL
           session, browser, page = raw_session(id)
           other = @site.login_page(transport)
           # sign a request whose server= is a different (valid) login URL
-          foreign = Session.new(id.unlocked, other.sqrl_url).query
+          foreign = Session.new(id.unlocked, other.sqrl_url, insecure: @insecure).query
           url = page.sqrl_url.sub(/\As?qrl/, page.sqrl_url.start_with?("qrl") ? "http" : "https")
           resp = raw_post(browser, url, foreign.body, ctx, "wrong server echo")
           check(resp.tif.client_failure? && resp.tif.command_failed?,

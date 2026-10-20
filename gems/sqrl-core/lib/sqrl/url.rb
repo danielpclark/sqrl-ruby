@@ -6,13 +6,15 @@ module SQRL
   # * The *site key* that all per-site keys are derived from is the lower-cased host name
   #   (user info and port stripped). When the URL carries an +x=N+ parameter, the first +N+
   #   characters of the path (including the leading +/+) are appended.
-  # * The *POST URL* is the same URL with the scheme replaced by +https+ (+qrl://+, the
-  #   legacy plain-http scheme, is only accepted for loopback hosts, for development).
+  # * The *POST URL* is the same URL with the scheme replaced by +https+. +qrl://+, the
+  #   plain-http scheme of GRC's early drafts, is not part of the final specification: it is
+  #   parsed, accepted for loopback hosts only, and refused by {SQRL::Session} unless it was
+  #   created with +insecure: true+ (a testing mode for the browser extension's test server).
   # * +can=+ carries a base64url-encoded URL to send the browser to if the user cancels.
   class URL
     # The URL exactly as received (this is what the first +server=+ parameter carries).
     attr_reader :original
-    # +sqrl+ or +qrl+ (lower-cased).
+    # +sqrl+ (or +qrl+ in the loopback-only testing mode), lower-cased.
     attr_reader :scheme
     # +host[:port]+ without user info, as used for the POST URL.
     attr_reader :authority

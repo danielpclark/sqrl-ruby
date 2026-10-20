@@ -40,13 +40,13 @@ module SQRL
       attr_accessor :open_timeout, :read_timeout, :max_redirects, :user_agent, :logger
 
       # @param cookies [HTTP::CookieJar] shared cookie jar
-      # @param allow_http [Symbol, Boolean] +:loopback+ (default) permits plain http only
-      #   for loopback hosts; +true+ permits it everywhere; +false+ never
+      # @param allow_http [Symbol, Boolean] +false+ (default) never speaks plain http;
+      #   +:loopback+ permits it for loopback hosts only (testing); +true+ everywhere
       # @param verify_tls [Boolean]
       # @param ca_file [String, nil]
       # @param proxy [String, nil, :env] proxy URL; +:env+ (default) honours +http_proxy+ /
       #   +https_proxy+ / +no_proxy+; loopback hosts never go through a proxy
-      def initialize(cookies: HTTP::CookieJar.new, allow_http: :loopback, verify_tls: true, ca_file: nil,
+      def initialize(cookies: HTTP::CookieJar.new, allow_http: false, verify_tls: true, ca_file: nil,
                      proxy: :env, open_timeout: 10, read_timeout: 30, max_redirects: 10,
                      user_agent: DEFAULT_USER_AGENT, logger: nil)
         @cookies = cookies

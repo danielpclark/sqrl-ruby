@@ -22,8 +22,10 @@ RSpec.describe SQRL::Rack::HostResolver do
     log = StringIO.new
     resolver = described_class.new(logger: Logger.new(log), limit: 2)
     expect(resolver.resolve(request_for("a.example"))).to eq(["a.example", "sqrl"])
-    expect(resolver.resolve(request_for("localhost:3000", scheme: "http"))).to eq(["localhost:3000", "qrl"])
-    expect(resolver.resolve(request_for("[::1]:3000", scheme: "http"))).to eq(["[::1]:3000", "qrl"])
+    # the scheme is never derived from the request: plain-http loopback still gets sqrl://
+    expect(resolver.resolve(request_for("localhost:3000", scheme: "http"))).to eq(["localhost:3000", "sqrl"])
+    expect(resolver.resolve(request_for("[::1]:3000", scheme: "http"))).to eq(["[::1]:3000", "sqrl"])
+    expect(described_class.new(scheme: "qrl").resolve(request_for("localhost:3000", scheme: "http"))).to eq(["localhost:3000", "qrl"])
     expect(resolver.resolve(request_for("[2001:db8::1]:3000", scheme: "http"))).to eq(["[2001:db8::1]:3000", "sqrl"])
     expect(log.string.scan("host not configured").size).to eq(1)
 

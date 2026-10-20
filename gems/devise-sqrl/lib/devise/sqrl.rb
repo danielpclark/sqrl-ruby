@@ -52,7 +52,8 @@ module Devise
       def host_resolver
         config = ::SQRL::Rails.config
         @mutex.synchronize do
-          @resolver ||= ::SQRL::Rack::HostResolver.new(host: config.host.presence, scheme: config.scheme.presence,
+          scheme = config.scheme.presence || (config.insecure_http ? "qrl" : nil)
+          @resolver ||= ::SQRL::Rack::HostResolver.new(host: config.host.presence, scheme: scheme,
                                                        allowed_hosts: config.allowed_hosts,
                                                        limit: config.host_cache_limit,
                                                        logger: config.logger || ::Rails.logger)
@@ -109,6 +110,7 @@ module Devise
                                    identity_key: "devise.sqrl.#{mapping.name}.identity",
                                    status_path: paths[:status], callback_path: paths[:callback],
                                    script_path: paths[:script], refresh_path: paths[:refresh],
+                                   poll_requires_ip_match: rails_config.poll_requires_ip_match ? true : false,
                                    ip: rails_config.ip || method(:client_ip))
       end
 

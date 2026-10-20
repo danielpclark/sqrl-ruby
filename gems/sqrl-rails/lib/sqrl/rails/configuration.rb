@@ -12,16 +12,24 @@ module SQRL
     #     sqrl.sign_in = ->(controller, identity, user) { controller.send(:start_new_session_for, user) }
     #   end
     class Configuration
-      SERVER_OPTIONS = %i[path_extension nut_ttl cps_token_ttl require_ip_match ask sin on_unknown_identity
-                          on_authenticated cps_url clock logger allowed_hosts prune_every before_issue
-                          before_handle].freeze
+      SERVER_OPTIONS = %i[insecure_http path_extension nut_ttl cps_token_ttl require_ip_match ask sin
+                          on_unknown_identity on_authenticated cps_url clock logger allowed_hosts prune_every
+                          before_issue before_handle].freeze
 
       # --- protocol (see SQRL::Server::Config) ---------------------------------------
       # Public host (with port when not default) for issued +sqrl://+ URLs. Defaults to
       # the request's host.
       attr_accessor :host
-      # +"sqrl"+ or +"qrl"+; nil picks +qrl+ for plain-http loopback requests.
+      # Always +"sqrl"+ (HTTPS). Leave nil; set +insecure_http+ for the testing mode.
       attr_accessor :scheme
+      # Loopback-only testing mode issuing +qrl://+ (plain http) URLs, for example to try
+      # the browser extension against +bin/rails server+ without TLS. +qrl://+ is not part
+      # of the final SQRL specification; real clients require +sqrl://+ over HTTPS.
+      attr_accessor :insecure_http
+      # Optional hardening (default false): a login completed through the browser's own
+      # cookie (the poll path) counts only when the SQRL client's IP matched the
+      # browser's. It also refuses legitimate logins from a phone on another network.
+      attr_accessor :poll_requires_ip_match
       attr_accessor :path_extension, :nut_ttl, :cps_token_ttl, :require_ip_match, :ask, :sin, :on_unknown_identity, :on_authenticated, :cps_url,
                     :clock, :logger, :session_key, :identity_key
       # Hosts (Strings or Regexps) a request may use when +host+ is not configured.
@@ -83,6 +91,8 @@ module SQRL
       def initialize
         @host = nil
         @scheme = nil
+        @insecure_http = false
+        @poll_requires_ip_match = false
         @path_extension = nil
         @nut_ttl = 300
         @cps_token_ttl = 60

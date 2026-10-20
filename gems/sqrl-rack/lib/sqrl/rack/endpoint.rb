@@ -34,16 +34,17 @@ module SQRL
       # @param script_path [String] app-relative path serving +sqrl.js+
       # @param ip [#call, nil] +(request) -> String+ resolving the client IP; defaults to
       #   +Rack::Request#ip+
-      # +poll_requires_ip_match+ (default true): a login completed through the browser's
-      # own cookie (the poll path, no CPS token) counts only when the SQRL client's IP
-      # matched the browser's. Without it, a client that sent +noiptest+ could be tricked
-      # into authenticating a login page opened by someone else, who would then be
-      # logged in as that identity. CPS completions are unaffected.
+      # +poll_requires_ip_match+ (default false): when true, a login completed through the
+      # browser's own cookie (the poll path, no CPS token) counts only when the SQRL
+      # client's IP matched the browser's. This is an optional hardening against a client
+      # that sent +noiptest+ being tricked into authenticating a login page opened by
+      # someone else; it also refuses legitimate logins from a phone on another network,
+      # which is why it is off by default. CPS completions are unaffected.
       # +refresh_path+ serves {#refresh}: a JSON endpoint the page calls (through
       # +SQRL.refresh+) to swap an expired login URL for a fresh one without a reload.
       def initialize(handler:, session_key: SESSION_KEY, identity_key: IDENTITY_KEY, status_path: "/sqrl/status",
                      callback_path: nil, script_path: "/sqrl/sqrl.js", refresh_path: "/sqrl/refresh", ip: nil,
-                     poll_requires_ip_match: true)
+                     poll_requires_ip_match: false)
         @handler = handler
         @refresh_path = refresh_path
         @poll_requires_ip_match = poll_requires_ip_match

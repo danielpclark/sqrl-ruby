@@ -64,7 +64,9 @@ end
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `host`, `scheme` | request host; `sqrl` (`qrl` on plain-http loopback) | URL issued to clients |
+| `host` | request host | host placed in the `sqrl://` URLs issued to clients |
+| `insecure_http` | `false` | loopback-only testing mode issuing `qrl://` (plain http) URLs, for trying the browser extension against `bin/rails server`; not part of SQRL, refused for other hosts |
+| `poll_requires_ip_match` | `false` | optional hardening: refuse poll (cookie) completions when the client's IP did not match the browser's |
 | `on_unknown_identity` | `:create` | `:create` a user ({SQRL::Rails::UserFactory}), `:link` to the signed-in user, or `:refuse` |
 | `create_user` | `UserFactory` | `(identity) -> user`; the default fills placeholder columns (random password, `sqrl-…@sqrl.invalid`) |
 | `find_user` | by `user_ref` | `(identity) -> user or nil` |

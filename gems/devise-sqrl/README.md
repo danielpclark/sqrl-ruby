@@ -71,7 +71,7 @@ markup. The markup follows the `sqrl.js` contract of `sqrl-rack`.
 ## Configuration
 
 Protocol and storage settings live in `Rails.application.config.sqrl` (see
-[sqrl-rails](../sqrl-rails): `host`, `require_ip_match`, `nut_ttl`, `cps_token_ttl`,
+[sqrl-rails](../sqrl-rails): `host`, `insecure_http`, `require_ip_match`, `poll_requires_ip_match`, `nut_ttl`, `cps_token_ttl`,
 `ask`, `sin`, `stores`). The Devise-specific options go in `Devise.setup`:
 
 ```ruby

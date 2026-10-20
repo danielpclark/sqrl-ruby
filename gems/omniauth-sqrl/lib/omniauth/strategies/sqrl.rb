@@ -27,8 +27,9 @@ module OmniAuth
     #
     # Options (beyond OmniAuth's own): +stores:+ ({::SQRL::Server::Stores}; in-memory by
     # default, which is for development only), +host:+ (public host placed in
-    # +sqrl://+ URLs; defaults to the request host), +scheme:+ (+sqrl+, or +qrl+
-    # automatically for plain-http loopback), +path_extension:+, +nut_ttl:+,
+    # +sqrl://+ URLs; defaults to the request host), +insecure_http:+ (loopback-only
+    # testing mode issuing +qrl://+ URLs; never on by default), +poll_requires_ip_match:+
+    # (optional hardening, off by default), +path_extension:+, +nut_ttl:+,
     # +cps_token_ttl:+, +require_ip_match:+, +ask:+, +sin:+, +on_unknown_identity:+
     # (+:create+, +:link+ or +:refuse+), +link_user_ref:+ (callable +(env) -> ref+ naming
     # the signed-in user for +:link+), +login_block:+ (options of
@@ -48,6 +49,8 @@ module OmniAuth
       option :stores, nil
       option :host, nil
       option :scheme, nil
+      option :insecure_http, false
+      option :poll_requires_ip_match, false
       option :path_extension, nil
       option :nut_ttl, 300
       option :cps_token_ttl, 60
@@ -225,6 +228,7 @@ module OmniAuth
       # The request-scoped {Endpoint}.
       def endpoint
         @endpoint ||= Endpoint.new(handler: handler, session_key: SESSION_KEY, identity_key: IDENTITY_KEY,
+                                   poll_requires_ip_match: options.poll_requires_ip_match ? true : false,
                                    status_path: status_path, callback_path: relative_callback_path,
                                    script_path: script_path, refresh_path: refresh_path, ip: options.ip)
       end
@@ -247,7 +251,8 @@ module OmniAuth
 
       def server_config(host, scheme)
         ::SQRL::Server::Config.new(
-          host: host, scheme: scheme, path: full_path(cli_path), callback_path: full_path(relative_callback_path),
+          host: host, scheme: scheme, insecure_http: options.insecure_http ? true : false,
+          path: full_path(cli_path), callback_path: full_path(relative_callback_path),
           path_extension: options.path_extension, nut_ttl: options.nut_ttl.to_i, cps_token_ttl: options.cps_token_ttl.to_i,
           require_ip_match: options.require_ip_match ? true : false, ask: options.ask, sin: options.sin,
           on_unknown_identity: options.on_unknown_identity.to_sym, logger: options.logger,
@@ -265,7 +270,8 @@ module OmniAuth
         def host_resolver_for(options)
           key = options.to_hash.reject { |k, _| k.to_s == "stores" }.merge("stores" => options.stores.object_id)
           @facts_mutex.synchronize do
-            @host_resolvers[key] ||= ::SQRL::Rack::HostResolver.new(host: options.host, scheme: options.scheme,
+            scheme = options.scheme || (options.insecure_http ? "qrl" : nil)
+            @host_resolvers[key] ||= ::SQRL::Rack::HostResolver.new(host: options.host, scheme: scheme,
                                                                     allowed_hosts: options.allowed_hosts,
                                                                     limit: options.host_cache_limit,
                                                                     logger: options.logger || OmniAuth.logger)

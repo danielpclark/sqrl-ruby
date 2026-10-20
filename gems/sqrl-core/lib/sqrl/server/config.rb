@@ -18,8 +18,14 @@ module SQRL
       attr_accessor :path
       # Path of the CPS callback used by the default +cps_url+ builder.
       attr_accessor :callback_path
-      # +sqrl+, or +qrl+ for plain-http loopback development.
-      attr_accessor :scheme
+      # The URL scheme issued: always +sqrl+ (which means HTTPS) unless +insecure_http+ is
+      # set, in which case it is +qrl+. Read-only; set +insecure_http+ instead.
+      attr_reader :scheme
+      # Loopback-only testing mode: issue +qrl://+ (plain http) URLs. +qrl://+ is not part
+      # of the final SQRL specification and real SQRL clients do not accept it; it exists
+      # so a site can be exercised against the browser extension's test server without
+      # TLS. Validation refuses it for any host that is not loopback.
+      attr_accessor :insecure_http
       # +x=N+ path extension to scope identities to a path prefix (nil for none).
       attr_accessor :path_extension
       # Lifetime in seconds of nuts (login page and per-response).
@@ -57,7 +63,7 @@ module SQRL
       # +:command+ and +:idk+). Raise {RateLimited} to refuse.
       attr_accessor :before_handle
 
-      def initialize(host: nil, path: "/sqrl/cli", callback_path: "/sqrl/callback", scheme: "sqrl",
+      def initialize(host: nil, path: "/sqrl/cli", callback_path: "/sqrl/callback", scheme: nil, insecure_http: false,
                      path_extension: nil, nut_ttl: 300, cps_token_ttl: 60, require_ip_match: true,
                      ask: nil, sin: nil, on_unknown_identity: :create, on_authenticated: nil,
                      cps_url: nil, clock: nil, logger: nil, allowed_hosts: nil, prune_every: 1000,
@@ -69,7 +75,9 @@ module SQRL
         @host = host
         @path = path
         @callback_path = callback_path
-        @scheme = scheme
+        @insecure_http = insecure_http ? true : false
+        @insecure_http = true if scheme.to_s == "qrl"
+        @scheme = @insecure_http ? "qrl" : (scheme || "sqrl").to_s
         @path_extension = path_extension
         @nut_ttl = nut_ttl
         @cps_token_ttl = cps_token_ttl
@@ -92,9 +100,11 @@ module SQRL
         raise ArgumentError, "path must start with /" unless @path.to_s.start_with?("/")
         raise ArgumentError, "callback_path must start with /" unless @callback_path.to_s.start_with?("/")
         raise ArgumentError, "scheme must be sqrl or qrl" unless SCHEMES.include?(@scheme)
-        if @scheme == "qrl" && !URL.loopback?(bare_host)
-          raise ArgumentError, "qrl:// (plain http) is only allowed for loopback hosts"
+        if insecure_http? && !URL.loopback?(bare_host)
+          raise ArgumentError, "insecure_http (plain http, qrl://) is only allowed for loopback hosts, not #{bare_host}"
         end
+
+        warn_insecure_once if insecure_http?
         unless @path_extension.nil? || (@path_extension.is_a?(Integer) && @path_extension.positive?)
           raise ArgumentError, "path_extension must be nil or a positive Integer"
         end
@@ -154,9 +164,34 @@ module SQRL
         end
       end
 
-      # +https+ (or +http+ for +qrl+).
+      # +https+ (or +http+ in +insecure_http+ mode).
       def http_scheme
-        @scheme == "qrl" ? "http" : "https"
+        insecure_http? ? "http" : "https"
+      end
+
+      # Whether the site issues +qrl://+ (plain http) URLs; see +insecure_http+.
+      def insecure_http? = @insecure_http ? true : false
+
+      INSECURE_WARNING = "[sqrl] insecure_http is a loopback-only testing mode; real SQRL clients require " \
+                         "sqrl:// over HTTPS"
+      @insecure_warned = false
+      @insecure_warning_mutex = Mutex.new
+
+      class << self
+        # Reset the one-time insecure_http warning (tests).
+        def reset_warnings!
+          @insecure_warning_mutex.synchronize { @insecure_warned = false }
+        end
+
+        # @api private
+        def warn_insecure_once(logger)
+          @insecure_warning_mutex.synchronize do
+            return if @insecure_warned
+
+            @insecure_warned = true
+          end
+          logger.respond_to?(:warn) ? logger.warn(INSECURE_WARNING) : Kernel.warn(INSECURE_WARNING)
+        end
       end
 
       # +https://host+
@@ -189,6 +224,10 @@ module SQRL
       def require_ip_match? = @require_ip_match ? true : false
 
       private
+
+      def warn_insecure_once
+        self.class.warn_insecure_once(@logger)
+      end
 
       def positive_number?(v)
         v.is_a?(Numeric) && v.positive?
