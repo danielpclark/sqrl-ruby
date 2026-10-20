@@ -1,7 +1,12 @@
 # frozen_string_literal: true
 
 ENV["RAILS_ENV"] = "test"
-ENV["DATABASE_URL"] ||= "sqlite3::memory:"
+# A file-backed database so that threads share one database (in-memory SQLite is per
+# connection), recreated on every run.
+require "fileutils"
+FileUtils.mkdir_p(File.expand_path("dummy/tmp", __dir__))
+FileUtils.rm_f(File.expand_path("dummy/tmp/test.sqlite3", __dir__))
+ENV["DATABASE_URL"] ||= "sqlite3:#{File.expand_path("dummy/tmp/test.sqlite3", __dir__)}?timeout=5000&pool=20"
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift File.expand_path("../../sqrl-core/lib", __dir__)
@@ -36,6 +41,8 @@ module DummySchema
         t.datetime :last_sign_in_at
         t.string :current_sign_in_ip
         t.string :last_sign_in_ip
+        t.string :reset_password_token
+        t.datetime :reset_password_sent_at
         t.timestamps
       end
     end
@@ -45,7 +52,7 @@ module DummySchema
 end
 DummySchema.load!
 
-Dir[File.expand_path("support/**/*.rb", __dir__)].sort.each { |f| require f }
+Dir[File.expand_path("support/**/*.rb", __dir__)].each { |f| require f }
 
 RSpec.configure do |config|
   config.expect_with(:rspec) { |c| c.syntax = :expect }
@@ -74,5 +81,13 @@ RSpec.configure do |config|
     cfg.nut_ttl = 300
     cfg.cps_token_ttl = 60
     cfg.clock = nil
+    cfg.ask_deny_button = nil
+    cfg.allowed_hosts = nil
+    cfg.host_cache_limit = nil
+    cfg.before_issue = nil
+    cfg.before_handle = nil
+    cfg.prune_every = nil
+    cfg.rate_limit = nil
+    Devise.sqrl_only_blocked_strategies = [:database_authenticatable]
   end
 end

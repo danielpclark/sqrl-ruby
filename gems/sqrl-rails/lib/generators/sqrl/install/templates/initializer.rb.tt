@@ -38,8 +38,43 @@ Rails.application.config.sqrl.tap do |sqrl|
   # sqrl.failure_path = "/session/new"
 
   # Protocol options (see SQRL::Server::Config): sqrl.nut_ttl, sqrl.cps_token_ttl,
-  # sqrl.require_ip_match, sqrl.ask, sqrl.sin, sqrl.path_extension, sqrl.on_authenticated.
+  # sqrl.require_ip_match, sqrl.path_extension, sqrl.on_authenticated.
 
-  # Storage: :active_record (default, tables from the sqrl:install migration) or :memory.
+  # Ask the user a question on every login (the client shows it with the buttons; the
+  # answer arrives as btn=1 or btn=2). ask_deny_button names the button that refuses
+  # the login. SQRL_ASK=1 turns the example question on for testing.
+  if ENV["SQRL_ASK"].present?
+    sqrl.ask = SQRL::Ask.new(message: "Allow this login?", buttons: [{ label: "Allow" }, { label: "Deny" }],
+                             accept: [1])   # only "Allow" lets the ident proceed
+    sqrl.ask_deny_button = 2               # and a "Deny" that slips through is refused at the callback
+  end
+
+  # Secret index: the server sends sin= and the client answers with ins=, a per-site
+  # secret derived from its identity, which the site can use as an extra factor.
+  sqrl.sin = "0" if ENV["SQRL_SIN"].present?
+
+  # Rate limit for the protocol endpoint and the login page, per client IP, counted in
+  # Rails.cache. nil disables it.
+  # sqrl.rate_limit = { to: 60, within: 1.minute }
+
+  # Hosts a request may use when sqrl.host is not set (Strings or Regexps), and how many
+  # distinct request hosts are kept per process; nuts and pending logins are pruned
+  # opportunistically every prune_every handled requests.
+  # sqrl.allowed_hosts = ["example.com", /\.example\.com\z/]
+  # sqrl.host_cache_limit = 16
+  # sqrl.prune_every = 1000
+
+  # Hooks run before a login URL is issued and before a protocol request is handled;
+  # raise SQRL::Server::RateLimited to refuse (the request gets a 429).
+  # sqrl.before_handle = ->(context) { raise SQRL::Server::RateLimited.new(retry_after: 10) if Throttle.hot?(context[:ip]) }
+
+  # Storage: :active_record (default, tables from the sqrl:install migration), :cache
+  # (Rails.cache or sqrl.cache_store; needs Redis or Memcached) or :memory.
   sqrl.stores = :active_record
 end
+
+# Account policies: a SQRL client can ask the site to refuse password logins (sqrlonly)
+# and password recovery (hardlock) for its account. The generator includes
+# SQRL::Rails::PasswordPolicy::Sessions / ::Passwords into the generated controllers to
+# enforce them; SQRL::Rails.sqrl_only?(user) and SQRL::Rails.hard_locked?(user) are
+# available for your own code. Users can review their identities at /sqrl/identities.

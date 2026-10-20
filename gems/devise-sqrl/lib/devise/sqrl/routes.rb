@@ -5,7 +5,8 @@ module ActionDispatch
     # Devise calls +devise_sqrl+ for every mapping whose model declares
     # +:sqrl_authenticatable+. The routes live under the mapping's path (+/users/sqrl+)
     # and get the helpers +new_user_sqrl_path+, +cli_user_sqrl_path+,
-    # +status_user_sqrl_path+, +callback_user_sqrl_path+ and +script_user_sqrl_path+.
+    # +status_user_sqrl_path+, +callback_user_sqrl_path+, +script_user_sqrl_path+,
+    # +identities_user_sqrl_path+ and +unlink_identity_user_sqrl_path(id)+.
     class Mapper
       protected
 
@@ -16,6 +17,9 @@ module ActionDispatch
           get :status
           get :callback
           get :script, path: "sqrl.js"
+          get :refresh
+          get :identities
+          delete "identities/:id", action: :unlink, as: :unlink_identity
         end
       end
     end

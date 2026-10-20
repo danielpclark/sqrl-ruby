@@ -13,7 +13,8 @@ module SQRL
     #   end
     class Configuration
       SERVER_OPTIONS = %i[path_extension nut_ttl cps_token_ttl require_ip_match ask sin on_unknown_identity
-                          on_authenticated cps_url clock logger].freeze
+                          on_authenticated cps_url clock logger allowed_hosts prune_every before_issue
+                          before_handle].freeze
 
       # --- protocol (see SQRL::Server::Config) ---------------------------------------
       # Public host (with port when not default) for issued +sqrl://+ URLs. Defaults to
@@ -21,12 +22,31 @@ module SQRL
       attr_accessor :host
       # +"sqrl"+ or +"qrl"+; nil picks +qrl+ for plain-http loopback requests.
       attr_accessor :scheme
-      attr_accessor :path_extension, :nut_ttl, :cps_token_ttl, :require_ip_match, :ask, :sin,
-                    :on_unknown_identity, :on_authenticated, :cps_url, :clock, :logger
+      attr_accessor :path_extension, :nut_ttl, :cps_token_ttl, :require_ip_match, :ask, :sin, :on_unknown_identity, :on_authenticated, :cps_url,
+                    :clock, :logger, :session_key, :identity_key
+      # Hosts (Strings or Regexps) a request may use when +host+ is not configured.
+      attr_accessor :allowed_hosts
+      # Maximum number of distinct derived request hosts kept per process (default 16).
+      attr_accessor :host_cache_limit
+      # Delete expired nuts and pending logins after every N handled requests (default
+      # 1000; nil disables opportunistic pruning).
+      attr_accessor :prune_every
+      # Callables +(context)+ run before a login URL is issued / before a protocol request
+      # is handled; raise +SQRL::Server::RateLimited+ to refuse (answered with 429).
+      attr_accessor :before_issue, :before_handle
+
+      # When the site poses an +ask+ (see +ask+), the number of the button that means
+      # "do not log me in" (buttons are numbered from 1). A login completed with that
+      # answer is refused at the callback. +nil+ accepts every answer.
+      attr_accessor :ask_deny_button
 
       # --- storage ---------------------------------------------------------------------
-      # +:active_record+ (default), +:memory+, or an +SQRL::Server::Stores+.
+      # +:active_record+ (default), +:cache+ (see +cache_store+), +:memory+, or an
+      # +SQRL::Server::Stores+.
       attr_accessor :stores
+      # The +ActiveSupport::Cache::Store+ used by +stores = :cache+ (default +Rails.cache+).
+      # It must delete atomically (Redis, Memcached); see {Stores::Cache}.
+      attr_accessor :cache_store
 
       # --- users -----------------------------------------------------------------------
       # Name of the user model (+"User"+).
@@ -52,9 +72,13 @@ module SQRL
       # --- plumbing --------------------------------------------------------------------
       # Mount path of the engine; auto-detected from the routes when nil.
       attr_accessor :mount_path
-      attr_accessor :session_key, :identity_key
       # Callable +(request) -> String+ resolving the client IP (default +remote_ip+).
       attr_accessor :ip
+      # Rate limit for the protocol endpoint and the login page, as
+      # +{ to: 60, within: 1.minute }+ (per client IP, counted in +Rails.cache+); +nil+
+      # disables it. Optional keys: +by:+ a callable +(request) -> String+, +cache:+ a
+      # cache store, +only:+ an array of +:cli+, +:login+, +:status+, +:callback+.
+      attr_accessor :rate_limit
 
       def initialize
         @host = nil
@@ -65,12 +89,19 @@ module SQRL
         @require_ip_match = true
         @ask = nil
         @sin = nil
+        @ask_deny_button = nil
+        @allowed_hosts = nil
+        @host_cache_limit = nil
+        @prune_every = nil
+        @before_issue = nil
+        @before_handle = nil
         @on_unknown_identity = :create
         @on_authenticated = nil
         @cps_url = nil
         @clock = nil
         @logger = nil
         @stores = :active_record
+        @cache_store = nil
         @user_class = "User"
         @find_user = nil
         @create_user = nil
@@ -82,6 +113,7 @@ module SQRL
         @session_key = SQRL::Rack::Endpoint::SESSION_KEY
         @identity_key = SQRL::Rack::Endpoint::IDENTITY_KEY
         @ip = nil
+        @rate_limit = nil
       end
 
       # Keyword options for {SQRL::Server::Config} (host, scheme and paths are added by

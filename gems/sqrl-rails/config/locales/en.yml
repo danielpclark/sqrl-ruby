@@ -1,0 +1,11 @@
+en:
+  sqrl:
+    password_policy:
+      sqrl_only: "This account signs in with SQRL only."
+      hard_lock: "Password recovery is disabled for this account; sign in with SQRL instead."
+    identities:
+      unlinked: "SQRL identity unlinked."
+      not_found: "That SQRL identity is not linked to your account."
+      sign_in_required: "Sign in to manage your SQRL identities."
+    callback:
+      declined: "You declined the SQRL login."

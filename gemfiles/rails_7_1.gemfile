@@ -1,0 +1,21 @@
+# frozen_string_literal: true
+
+# Version-matrix Gemfile: Rails ~> 7.1 with Devise ~> 4.9, for the sqrl-rails and
+# devise-sqrl specs.  Use with:
+#   BUNDLE_GEMFILE=gemfiles/rails_7_1.gemfile bundle install
+#   BUNDLE_GEMFILE=gemfiles/rails_7_1.gemfile bundle exec rake spec:sqrl-rails spec:devise-sqrl
+source "https://rubygems.org"
+
+gem "sqrl-core", path: "../gems/sqrl-core"
+gem "sqrl-rack", path: "../gems/sqrl-rack"
+gem "sqrl-rails", path: "../gems/sqrl-rails"
+gem "devise-sqrl", path: "../gems/devise-sqrl"
+
+gem "rails", "~> 7.1.0"
+gem "devise", "~> 4.9"
+gem "sqlite3", "~> 1.7"
+gem "rake", "~> 13.0"
+gem "rspec", "~> 3.13"
+gem "rack-test"
+gem "rqrcode", "~> 3.0"
+gem "bcrypt"

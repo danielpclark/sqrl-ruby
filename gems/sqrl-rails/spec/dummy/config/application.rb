@@ -20,6 +20,8 @@ module Dummy
     config.action_dispatch.show_exceptions = :none
     config.consider_all_requests_local = true
     config.session_store :cookie_store, key: "_dummy_session"
+    # As in a generated config/environments/test.rb: specs post forms without tokens.
+    config.action_controller.allow_forgery_protection = false
     config.active_record.maintain_test_schema = false if config.respond_to?(:active_record)
     config.paths["log"] = File.join(config.root, "log", "test.log")
   end

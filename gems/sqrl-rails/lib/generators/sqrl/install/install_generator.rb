@@ -54,6 +54,15 @@ module Sqrl
         end
       end
 
+      # Enforce the sqrlonly / hardlock account policies in the controllers that
+      # `bin/rails generate authentication` produced.
+      def include_password_policy
+        inject_policy("app/controllers/sessions_controller.rb", "SessionsController",
+                      "SQRL::Rails::PasswordPolicy::Sessions")
+        inject_policy("app/controllers/passwords_controller.rb", "PasswordsController",
+                      "SQRL::Rails::PasswordPolicy::Passwords")
+      end
+
       def add_login_block_to_sessions_view
         return if options[:skip_views]
 
@@ -81,6 +90,17 @@ module Sqrl
       end
 
       private
+
+      def inject_policy(path, klass, concern)
+        full = File.expand_path(path, destination_root)
+        return unless File.exist?(full)
+
+        if File.read(full).include?(concern)
+          say_status(:identical, path, :blue)
+        else
+          inject_into_class path, klass, "  include #{concern}\n"
+        end
+      end
 
       def user_model_path
         "app/models/#{options[:user_model].underscore}.rb"

@@ -19,14 +19,15 @@ module SQRL
         login = sqrl_login_url(return_to: return_to, cancel_url: cancel_url, link_user: link_user)
         SQRL::Rack::LoginBlock.render(login_url: login.url, status_url: sqrl_status_path,
                                       cancel_url: cancel_url, script_url: (sqrl_script_path if script),
-                                      **options).html_safe # rubocop:disable Rails/OutputSafety
+                                      refresh_url: sqrl_refresh_path,
+                                      **options).html_safe
       end
 
       # Issue (once per request) and return the +sqrl://+ login URL.
       #
       # @return [SQRL::Server::LoginURL]
       def sqrl_login_url(return_to: nil, cancel_url: nil, link_user: nil)
-        @_sqrl_login_url ||= begin
+        @sqrl_login_url ||= begin
           return_to ||= sqrl_default_return_to
           link_ref = link_user == false ? nil : SQRL::Rails.user_ref(link_user || sqrl_linkable_user)
           SQRL::Rails.endpoint_for(request).issue(request, return_to: return_to, cancel_url: cancel_url,
@@ -36,17 +37,20 @@ module SQRL
 
       # The QR code of the login URL as inline SVG.
       def sqrl_qr_svg(**options)
-        SQRL::Rack::QR.svg(sqrl_login_url.url, **options).html_safe # rubocop:disable Rails/OutputSafety
+        SQRL::Rack::QR.svg(sqrl_login_url.url, **options).html_safe
       end
 
       # +<script src="/sqrl/sqrl.js" defer>+
       def sqrl_script_tag
-        SQRL::Rack::LoginBlock.script_tag(src: sqrl_script_path).html_safe # rubocop:disable Rails/OutputSafety
+        SQRL::Rack::LoginBlock.script_tag(src: sqrl_script_path).html_safe
       end
 
       def sqrl_status_path = SQRL::Rails.path_for(:status, script_name: sqrl_host_script_name)
+      # The identity-management page of the engine (list and unlink SQRL identities).
+      def sqrl_identities_path = SQRL::Rails.path_for(:identities, script_name: sqrl_host_script_name)
       def sqrl_callback_path = SQRL::Rails.path_for(:callback, script_name: sqrl_host_script_name)
       def sqrl_script_path = SQRL::Rails.path_for(:script, script_name: sqrl_host_script_name)
+      def sqrl_refresh_path = SQRL::Rails.path_for(:refresh, script_name: sqrl_host_script_name)
 
       private
 

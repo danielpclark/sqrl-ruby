@@ -22,6 +22,7 @@ module SQRL
       initializer "sqrl.helpers" do
         ActiveSupport.on_load(:action_controller_base) do
           include SQRL::Rails::ControllerHelpers
+
           helper SQRL::Rails::LoginHelper
         end
         ActiveSupport.on_load(:action_view) do

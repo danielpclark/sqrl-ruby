@@ -242,7 +242,7 @@ RSpec.describe "devise-sqrl" do
 
   describe "Devise integration" do
     it "refuses inactive resources with their inactive message" do
-      allow_any_instance_of(User).to receive(:inactive).and_return(true) # rubocop:disable RSpec/AnyInstance
+      allow_any_instance_of(User).to receive(:inactive).and_return(true)
       url, browser = open_login_page
       session = sqrl_login(new_client, url)
       visit_cps(browser, session)

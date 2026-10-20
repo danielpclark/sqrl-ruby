@@ -1,7 +1,12 @@
 # frozen_string_literal: true
 
 ENV["RAILS_ENV"] = "test"
-ENV["DATABASE_URL"] ||= "sqlite3::memory:"
+# A file-backed database so that several threads (the store-contract concurrency specs)
+# share one database; an in-memory SQLite database is per connection.
+require "fileutils"
+FileUtils.mkdir_p(File.expand_path("dummy/tmp", __dir__))
+FileUtils.rm_f(File.expand_path("dummy/tmp/test.sqlite3", __dir__))
+ENV["DATABASE_URL"] ||= "sqlite3:#{File.expand_path("dummy/tmp/test.sqlite3", __dir__)}?timeout=5000&pool=20"
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift File.expand_path("../../sqrl-core/lib", __dir__)
@@ -32,6 +37,7 @@ module DummySchema
         t.string :password_digest
         t.timestamps
       end
+      add_index :users, :email_address
       create_table :sessions, force: true do |t|
         t.references :user, null: false
         t.string :ip_address
@@ -45,7 +51,8 @@ module DummySchema
 end
 DummySchema.load!
 
-Dir[File.expand_path("support/**/*.rb", __dir__)].sort.each { |f| require f }
+Dir[File.expand_path("support/**/*.rb", __dir__)].each { |f| require f }
+require File.expand_path("../../sqrl-core/spec/support/store_contract", __dir__)
 
 RSpec.configure do |config|
   config.expect_with(:rspec) { |c| c.syntax = :expect }
@@ -75,5 +82,13 @@ RSpec.configure do |config|
     cfg.nut_ttl = 300
     cfg.cps_token_ttl = 60
     cfg.clock = nil
+    cfg.ask_deny_button = nil
+    cfg.allowed_hosts = nil
+    cfg.host_cache_limit = nil
+    cfg.before_issue = nil
+    cfg.before_handle = nil
+    cfg.prune_every = nil
+    cfg.rate_limit = nil
+    cfg.cache_store = nil
   end
 end

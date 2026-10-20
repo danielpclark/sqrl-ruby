@@ -13,10 +13,15 @@ RSpec.describe Sqrl::Generators::InstallGenerator do
     File.write(File.join(dir, "app/models/user.rb"), "class User < ApplicationRecord\n  has_secure_password\nend\n")
     File.write(File.join(dir, "config/routes.rb"), "Rails.application.routes.draw do\n  resource :session\nend\n")
     File.write(File.join(dir, "app/views/sessions/new.html.erb"), "<%= form_with url: session_path do |f| %><% end %>\n")
+    FileUtils.mkdir_p(File.join(dir, "app/controllers"))
+    File.write(File.join(dir, "app/controllers/sessions_controller.rb"),
+               "class SessionsController < ApplicationController\n  def create\n  end\nend\n")
+    File.write(File.join(dir, "app/controllers/passwords_controller.rb"),
+               "class PasswordsController < ApplicationController\n  def create\n  end\nend\n")
   end
 
   def run(dir, *args)
-    described_class.start(args, destination_root: dir, shell: Thor::Shell::Basic.new.tap { |s| s.mute { } })
+    described_class.start(args, destination_root: dir, shell: Thor::Shell::Basic.new.tap { |s| s.mute {} })
   end
 
   it "installs everything and is idempotent" do
@@ -44,11 +49,18 @@ RSpec.describe Sqrl::Generators::InstallGenerator do
       view = File.read(File.join(dir, "app/views/sessions/new.html.erb"))
       expect(view).to include("<%= sqrl_login_block %>")
 
+      sessions = File.read(File.join(dir, "app/controllers/sessions_controller.rb"))
+      expect(sessions).to include("include SQRL::Rails::PasswordPolicy::Sessions")
+      passwords = File.read(File.join(dir, "app/controllers/passwords_controller.rb"))
+      expect(passwords).to include("include SQRL::Rails::PasswordPolicy::Passwords")
+      expect(initializer).to include("SQRL_ASK")
+
       capture { run(dir, "--host=example.com", "--skip-migration") }
       expect(Dir[File.join(dir, "db/migrate/*_create_sqrl_tables.rb")].size).to eq(1)
       expect(File.read(File.join(dir, "config/routes.rb")).scan("mount SQRL::Rails::Engine").size).to eq(1)
       expect(File.read(File.join(dir, "app/models/user.rb")).scan("has_many :sqrl_identities").size).to eq(1)
       expect(File.read(File.join(dir, "app/views/sessions/new.html.erb")).scan("sqrl_login_block").size).to eq(1)
+      expect(File.read(File.join(dir, "app/controllers/sessions_controller.rb")).scan("PasswordPolicy").size).to eq(1)
     end
   end
 

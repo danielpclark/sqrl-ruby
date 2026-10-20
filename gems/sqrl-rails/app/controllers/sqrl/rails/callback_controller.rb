@@ -7,15 +7,19 @@ module SQRL
     # it authenticated). Resolves or creates the user, signs them in through the
     # configured adapter and redirects.
     class CallbackController < ApplicationController
+      include RateLimited
+
       concern = SQRL::Rails.host_authentication_concern
       if concern
         include concern
+
         allow_unauthenticated_access if respond_to?(:allow_unauthenticated_access)
       end
 
       def show
         completion = sqrl_endpoint.callback(request)
         return failure("SQRL login failed or expired. Please try again.") unless completion
+        return failure(I18n.t("sqrl.callback.declined", default: "You declined the SQRL login."), completion) if declined?(completion)
 
         user = resolve_user(completion)
         return failure("This SQRL identity is not linked to an account.", completion) unless user
@@ -30,26 +34,14 @@ module SQRL
 
       private
 
-      def config
-        SQRL::Rails.config
+      def sqrl_rate_limit_scope
+        :callback
       end
 
-      # The host's Authentication concern uses the host's route helpers (root_url,
-      # new_session_path); resolve them through the main_app proxy.
-      def method_missing(name, *args, &block)
-        if host_route_helper?(name)
-          main_app.public_send(name, *args, &block)
-        else
-          super
-        end
-      end
-
-      def respond_to_missing?(name, include_private = false)
-        host_route_helper?(name) || super
-      end
-
-      def host_route_helper?(name)
-        name.to_s.match?(/_(url|path)\z/) && respond_to?(:main_app) && main_app.respond_to?(name)
+      # The client answered the site's +ask+ with the button configured as "deny".
+      def declined?(completion)
+        deny = sqrl_config.ask_deny_button
+        !deny.nil? && completion.pending_login.btn == deny.to_i
       end
 
       # The user behind an identity; for a brand-new identity apply the configured
@@ -59,7 +51,7 @@ module SQRL
         user = find_user(identity)
         return user if user
 
-        case config.on_unknown_identity
+        case sqrl_config.on_unknown_identity
         when :refuse
           nil
         when :link
@@ -70,13 +62,13 @@ module SQRL
       end
 
       def find_user(identity)
-        return config.find_user.call(identity) if config.find_user
+        return sqrl_config.find_user.call(identity) if sqrl_config.find_user
 
         SQRL::Rails.user_from_ref(identity.user_ref)
       end
 
       def create_user(identity)
-        user = config.create_user ? config.create_user.call(identity) : UserFactory.call(identity)
+        user = sqrl_config.create_user ? sqrl_config.create_user.call(identity) : UserFactory.call(identity)
         attach(identity, user)
       end
 
@@ -101,7 +93,7 @@ module SQRL
       def failure(message, completion = nil)
         sqrl_endpoint.logout(request) if completion
         flash[:alert] = message if respond_to?(:flash)
-        redirect_to(config.failure_path || engine_path(:login), allow_other_host: false)
+        redirect_to(sqrl_config.failure_path || engine_path(:login), allow_other_host: false)
       end
     end
   end

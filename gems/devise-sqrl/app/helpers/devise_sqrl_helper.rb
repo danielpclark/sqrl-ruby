@@ -20,7 +20,8 @@ module DeviseSQRLHelper
     login = sqrl_login_url_for(mapping.name, return_to: return_to)
     opts = Devise.sqrl_login_block.to_h.merge(options)
     ::SQRL::Rack::LoginBlock.render(login_url: login.url, status_url: endpoint.status_url(request),
-                                    script_url: (endpoint.script_url(request) if script), **opts).html_safe # rubocop:disable Rails/OutputSafety
+                                    script_url: (endpoint.script_url(request) if script),
+                                    refresh_url: endpoint.refresh_url(request), **opts).html_safe
   end
 
   # The +sqrl://+ login URL issued for a scope (one per request per scope).
@@ -38,7 +39,7 @@ module DeviseSQRLHelper
   def sqrl_script_tag_for(resource_or_scope)
     mapping = sqrl_devise_mapping(resource_or_scope)
     src = Devise::SQRL.endpoint_for(mapping, request).script_url(request)
-    ::SQRL::Rack::LoginBlock.script_tag(src: src).html_safe # rubocop:disable Rails/OutputSafety
+    ::SQRL::Rack::LoginBlock.script_tag(src: src).html_safe
   end
 
   private

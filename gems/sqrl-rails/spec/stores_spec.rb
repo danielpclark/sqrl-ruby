@@ -7,6 +7,8 @@ RSpec.describe SQRL::Rails::Stores::ActiveRecord do
   let(:suk) { "\x02" * 32 }
   let(:vuk) { "\x03" * 32 }
 
+  it_behaves_like "a SQRL store set"
+
   describe "NutStore" do
     it "issues a nut and consumes it exactly once" do
       stores.nuts.issue(nut: "n1", pending_login_id: "p1", expected_server: "srv", ip: "1.2.3.4",

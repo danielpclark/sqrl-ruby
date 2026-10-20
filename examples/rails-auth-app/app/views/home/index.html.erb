@@ -2,7 +2,9 @@
 <% if Current.user %>
   <p id="status">Signed in as <strong><%= Current.user.email_address %></strong>
     (<%= pluralize(Current.user.sqrl_identities.count, "SQRL identity") %>).</p>
-  <p><%= link_to "Protected page", protected_path %></p>
+  <p><%= link_to "Protected page", protected_path %> &middot;
+     <%= link_to "Manage SQRL identities", sqrl_identities_path, id: "sqrl-identities" %></p>
+  <% if SQRL::Rails.sqrl_only?(Current.user) %><p id="sqrl-only">This account signs in with SQRL only.</p><% end %>
   <%= button_to "Sign out", session_path, method: :delete %>
 <% else %>
   <p id="status">You are not signed in.</p>

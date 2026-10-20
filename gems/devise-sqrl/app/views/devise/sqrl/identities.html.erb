@@ -1,0 +1,29 @@
+<h2>Your SQRL identities</h2>
+
+<% if flash[:alert].present? %><p class="alert"><%= flash[:alert] %></p><% end %>
+<% if flash[:notice].present? %><p class="notice"><%= flash[:notice] %></p><% end %>
+
+<% if @identities.empty? %>
+  <p id="sqrl-no-identities">No SQRL identity is linked to your account yet.</p>
+<% else %>
+  <table class="sqrl-identities">
+    <thead>
+      <tr><th>Identity</th><th>Linked</th><th>Last login</th><th>Logins</th><th>Flags</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% @identities.each do |identity| %>
+        <tr id="sqrl-identity-<%= identity.id %>" data-sqrl-idk="<%= identity.idk %>">
+          <td><code><%= identity.short_idk %></code><% if identity.idk == @current_idk %> <em>(this session)</em><% end %></td>
+          <td><%= identity.created_at&.to_fs(:short) %></td>
+          <td><%= identity.last_login_at&.to_fs(:short) || "never" %></td>
+          <td><%= identity.logins %></td>
+          <td><%= identity.flags.join(", ") %></td>
+          <td><%= button_to "Unlink", unlink_identity_sqrl_path(resource_name, identity), method: :delete,
+                            form: { data: { turbo_confirm: "Unlink this SQRL identity?" } } %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<p><%= link_to "Add another SQRL identity", new_sqrl_path(resource_name) if Devise::SQRL.on_unknown_identity == :link %></p>

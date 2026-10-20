@@ -17,7 +17,15 @@ placeholder email address and a random password (see `config/initializers/sqrl.r
 change that policy), starts a Rails `Session` exactly as the password form would, and
 redirects to the page you came from.
 
-Environment variables: `PORT`, `BIND`, `SQRL_HOST` (public host for the `sqrl://` URLs).
+Environment variables: `PORT`, `BIND`, `SQRL_HOST` (public host for the `sqrl://` URLs),
+`SQRL_ASK=1` (pose an "Allow this login?" question with Allow/Deny buttons; Deny refuses
+the login), `SQRL_SIN=1` (send a secret-index challenge).
 
 Useful routes: `/sqrl/login` (stand-alone SQRL page), `POST /sqrl/cli` (protocol
-endpoint), `/sqrl/status`, `/sqrl/callback`, `/sqrl/sqrl.js`.
+endpoint), `/sqrl/status`, `/sqrl/callback`, `/sqrl/sqrl.js`, `/sqrl/identities`
+(the signed-in user's SQRL identities, with an Unlink button).
+
+Account policies: the generator added `SQRL::Rails::PasswordPolicy::Sessions` to
+`SessionsController` and `::Passwords` to `PasswordsController`, so a user whose SQRL
+client asked for `sqrlonly` cannot log in with a password, and one who asked for
+`hardlock` cannot reset it.

@@ -37,6 +37,38 @@ module Devise
         sqrl_identities.exists?
       end
 
+      # Whether a SQRL identity of this record asked the site to refuse every non-SQRL
+      # way of signing in (+opt=sqrlonly+). Password logins are then refused by the
+      # Warden hook devise-sqrl installs (see +Devise.sqrl_only_blocked_strategies+).
+      def sqrl_only?
+        sqrl_identities.where(sqrlonly: true).exists?
+      end
+
+      # Whether a SQRL identity of this record asked the site to refuse every non-SQRL
+      # way of recovering the account (+opt=hardlock+). Password resets are then
+      # refused (+:recoverable+).
+      def hard_locked?
+        sqrl_identities.where(hardlock: true).exists?
+      end
+
+      # :recoverable – refuse to mail reset instructions to a hard-locked account. The
+      # record comes back with an error, which Devise's passwords controller renders.
+      def send_reset_password_instructions
+        return super unless hard_locked?
+
+        errors.add(:base, :sqrl_hard_locked)
+        nil
+      end
+
+      # :recoverable – refuse to set a new password through a reset token for a
+      # hard-locked account.
+      def reset_password(new_password, new_password_confirmation)
+        return super unless hard_locked?
+
+        errors.add(:base, :sqrl_hard_locked)
+        false
+      end
+
       # Attach an identity (an +SQRL::Server::Identity+ from the protocol handler, an
       # +SQRL::Rails::Identity+ row, or a base64url idk) to this record.
       def link_sqrl_identity!(identity)

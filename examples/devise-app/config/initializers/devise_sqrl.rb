@@ -13,7 +13,21 @@ Rails.application.config.sqrl.tap do |sqrl|
   sqrl.stores = :active_record
 
   # Protocol options: sqrl.require_ip_match (true), sqrl.nut_ttl (300 s),
-  # sqrl.cps_token_ttl (60 s), sqrl.ask, sqrl.sin, sqrl.path_extension.
+  # sqrl.cps_token_ttl (60 s), sqrl.path_extension.
+
+  # Ask the user a question on every login; ask_deny_button is the button that refuses
+  # it. SQRL_ASK=1 turns the example question on for testing.
+  if ENV["SQRL_ASK"].present?
+    sqrl.ask = SQRL::Ask.new(message: "Allow this login?", buttons: [{ label: "Allow" }, { label: "Deny" }],
+                             accept: [1])   # only "Allow" lets the ident proceed
+    sqrl.ask_deny_button = 2               # and a "Deny" that slips through is refused at the callback
+  end
+
+  # Secret index challenge (sin=/ins=). SQRL_SIN=1 turns it on for testing.
+  sqrl.sin = "0" if ENV["SQRL_SIN"].present?
+
+  # Rate limit for the protocol endpoint and login page (per IP, in Rails.cache).
+  # sqrl.rate_limit = { to: 60, within: 1.minute }
 end
 
 Devise.setup do |config|
@@ -35,4 +49,9 @@ Devise.setup do |config|
 
   # Where to go after a failed SQRL login (default: the scope's SQRL login page).
   # config.sqrl_failure_path = "/users/sign_in"
+
+  # Account policies: an identity that asked for "sqrlonly" cannot sign in through these
+  # strategies (password logins), one that asked for "hardlock" cannot reset its
+  # password. Users manage their identities at /<scope>/sqrl/identities.
+  # config.sqrl_only_blocked_strategies = [:database_authenticatable]
 end

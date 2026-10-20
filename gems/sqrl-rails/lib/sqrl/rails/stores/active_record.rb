@@ -23,6 +23,17 @@ module SQRL
                                    pending_logins: PendingLoginStore.new)
         end
 
+        # Runs a store operation with an explicitly checked-out connection, returned to
+        # the pool as soon as it finishes (Rails 7.1 would otherwise keep a thread's
+        # implicit connection until the thread dies, starving concurrent callers).
+        module WithConnection
+          private
+
+          def with_connection(&)
+            ::ActiveRecord::Base.connection_pool.with_connection(&)
+          end
+        end
+
         # Encoding helpers shared by the stores.
         module Codec
           module_function
@@ -38,23 +49,29 @@ module SQRL
 
         # @see SQRL::Server::NutStore
         class NutStore < SQRL::Server::NutStore
+          include WithConnection
+
           def issue(nut:, pending_login_id:, expected_server:, ip:, bound_idk:, expires_at:)
-            row = Nut.create!(nut: nut, pending_login_id: pending_login_id, expected_server: expected_server, ip: ip,
-                              bound_idk: Codec.encode(bound_idk), expires_at: expires_at)
-            to_record(row)
+            with_connection do
+              row = Nut.create!(nut: nut, pending_login_id: pending_login_id, expected_server: expected_server, ip: ip,
+                                bound_idk: Codec.encode(bound_idk), expires_at: expires_at)
+              to_record(row)
+            end
           end
 
           def consume(nut, now: Time.now)
             return nil if nut.nil? || nut.empty?
 
-            scope = Nut.where(nut: nut, used_at: nil).where("expires_at IS NULL OR expires_at > ?", now)
-            return nil unless scope.update_all(used_at: now) == 1
+            with_connection do
+              scope = Nut.where(nut: nut, used_at: nil).where("expires_at IS NULL OR expires_at > ?", now)
+              next nil unless scope.update_all(used_at: now) == 1
 
-            to_record(Nut.find_by!(nut: nut))
+              to_record(Nut.find_by!(nut: nut))
+            end
           end
 
           def prune!(now = Time.now)
-            Nut.where("used_at IS NOT NULL OR expires_at <= ?", now).delete_all
+            with_connection { Nut.where("used_at IS NOT NULL OR expires_at <= ?", now).delete_all }
             nil
           end
 
@@ -84,7 +101,13 @@ module SQRL
                                sqrlonly: identity.sqrlonly?, hardlock: identity.hardlock?, ins: identity.ins,
                                logins: identity.logins.to_i, last_login_at: Time.current)
             assign_user(row, identity.user_ref)
-            row.save!
+            begin
+              row.save!
+            rescue ::ActiveRecord::RecordInvalid, ::ActiveRecord::RecordNotUnique
+              raise ArgumentError, "identity already exists" if Identity.exists?(idk: row.idk)
+
+              raise
+            end
             to_record(row)
           end
 
@@ -162,6 +185,8 @@ module SQRL
 
         # @see SQRL::Server::PendingLoginStore
         class PendingLoginStore < SQRL::Server::PendingLoginStore
+          include WithConnection
+
           COLUMNS = %i[authenticated_at btn asked ip return_to link_user_ref expires_at cps_token
                        cps_token_expires_at ip_matched].freeze
 
@@ -196,17 +221,19 @@ module SQRL
           def claim_cps_token(token, now: Time.now)
             return nil if token.nil? || token.empty?
 
-            row = PendingLogin.find_by(cps_token: token)
-            return nil unless row
+            with_connection do
+              row = PendingLogin.find_by(cps_token: token)
+              next nil unless row
 
-            claimed = PendingLogin.where(id: row.id, cps_token: token)
-                                  .update_all(cps_token: nil, cps_token_expires_at: nil) == 1
-            return nil unless claimed
-            return nil if row.cps_token_expires_at && row.cps_token_expires_at <= now
+              claimed = PendingLogin.where(id: row.id, cps_token: token)
+                                    .update_all(cps_token: nil, cps_token_expires_at: nil) == 1
+              next nil unless claimed
+              next nil if row.cps_token_expires_at && row.cps_token_expires_at <= now
 
-            row.cps_token = nil
-            row.cps_token_expires_at = nil
-            to_record(row)
+              row.cps_token = nil
+              row.cps_token_expires_at = nil
+              to_record(row)
+            end
           end
 
           def prune!(now = Time.now)

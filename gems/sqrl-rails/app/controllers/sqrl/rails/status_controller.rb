@@ -4,8 +4,16 @@ module SQRL
   module Rails
     # Cookie-bound poll answered with +{"authenticated": bool, "next": url}+.
     class StatusController < ApplicationController
+      include RateLimited
+
       def show
         render_rack(sqrl_endpoint.status(request))
+      end
+
+      private
+
+      def sqrl_rate_limit_scope
+        :status
       end
     end
   end

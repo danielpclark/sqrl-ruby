@@ -22,6 +22,7 @@ module Dummy
     config.action_dispatch.show_exceptions = :none
     config.consider_all_requests_local = true
     config.session_store :cookie_store, key: "_dummy_devise_session"
+    config.action_controller.allow_forgery_protection = false
     config.active_record.maintain_test_schema = false if config.respond_to?(:active_record)
     config.action_mailer.delivery_method = :test
     config.action_mailer.default_url_options = { host: "www.example.com" }
@@ -31,6 +32,7 @@ end
 
 Devise.setup do |config|
   config.secret_key = "dummy-devise-secret-key-" * 4
+  config.mailer_sender = "sqrl@example.com"
   config.sign_out_via = :delete
   config.navigational_formats = ["*/*", :html]
 end

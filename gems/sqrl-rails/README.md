@@ -105,6 +105,76 @@ expired ones (run it from cron or a job).
 Nut consumption and CPS-token claims are single conditional `UPDATE`s, so they stay
 single-use under concurrent requests.
 
+## Account policies: `sqrlonly` and `hardlock`
+
+A SQRL client can ask the site to refuse every non-SQRL way of signing in (`sqrlonly`)
+and of recovering the account (`hardlock`). The flags are stored on the identity;
+`SQRL::Rails.sqrl_only?(user)` and `SQRL::Rails.hard_locked?(user)` answer for a user,
+and `SQRL::Rails::Identity.sqrl_only` / `.hard_locked` are scopes.
+
+`bin/rails generate sqrl:install` enforces them in the controllers that
+`generate authentication` produced:
+
+```ruby
+class SessionsController < ApplicationController
+  include SQRL::Rails::PasswordPolicy::Sessions    # refuses password login for sqrlonly users (create)
+end
+
+class PasswordsController < ApplicationController
+  include SQRL::Rails::PasswordPolicy::Passwords   # refuses password reset for hardlock users (create, edit, update)
+end
+```
+
+Both look the user up by `email_address`/`email` parameter or by reset token
+(`sqrl_policy_user`) and redirect to the sign-in page with a flash alert
+(`sqrl_policy_refused`); override either method for other flows. Messages are the
+`sqrl.password_policy.*` translations.
+
+## Identity management
+
+`GET /sqrl/identities` lists the signed-in user's identities (short key, linked date,
+last login, login count, flags) with an Unlink button (`DELETE /sqrl/identities/:id`).
+Unlinking detaches the identity from the user; the site keeps the protocol association,
+so the next login with it is treated as an unknown identity again. The view helper
+`sqrl_identities_path` links to the page. `last_login_at` and `logins` are updated on
+every successful `ident` and `enable`.
+
+## `ask`, `sin` and the deny button
+
+```ruby
+sqrl.ask = SQRL::Ask.new(message: "Allow this login?", buttons: [{ label: "Allow" }, { label: "Deny" }],
+                         accept: [1])   # only "Allow" (btn=1) lets the ident proceed
+sqrl.ask_deny_button = 2               # a "Deny" answer is also refused at the callback
+sqrl.sin = "0"                         # secret-index challenge; the client answers with ins=
+```
+
+Both may be callables receiving the request context. The generated initializer turns
+them on with `SQRL_ASK=1` / `SQRL_SIN=1` for testing.
+
+## Rate limiting, hooks and hosts
+
+```ruby
+sqrl.rate_limit = { to: 60, within: 1.minute }            # per client IP, counted in Rails.cache; 429 over the limit
+sqrl.before_handle = ->(ctx) { raise SQRL::Server::RateLimited.new(retry_after: 10) if ... }
+sqrl.before_issue = ->(ctx) { ... }                        # before a login URL is issued
+sqrl.allowed_hosts = ["example.com", /\.example\.com\z/]  # when sqrl.host is not set
+sqrl.host_cache_limit = 16                                 # distinct request hosts kept per process
+sqrl.prune_every = 1000                                    # opportunistic pruning of expired rows
+```
+
+`rate_limit` applies to the protocol endpoint, the login and refresh pages, the status
+poll, the callback and the identities page (`only:` narrows it; `by:` and `cache:`
+override the key and store). A request whose host is not allowed answers 400.
+`GET /sqrl/refresh` hands the page a fresh login URL when a nut expires (`sqrl.js`
+calls it through `SQRL.refresh`).
+
+## Storage back ends
+
+`sqrl.stores` is `:active_record` (default), `:cache` (`SQRL::Rails::Stores::Cache` on
+`Rails.cache` or `sqrl.cache_store`; needs a store that deletes atomically such as Redis
+or Memcached, and a persistent one if identities live there too) or `:memory`. Every
+store set passes the shared store contract spec from `sqrl-core`.
+
 ## Linking identities to existing accounts
 
 With `on_unknown_identity = :link`, unknown identities are only accepted while a user is

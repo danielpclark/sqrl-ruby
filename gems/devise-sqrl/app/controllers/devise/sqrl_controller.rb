@@ -11,7 +11,19 @@ class Devise::SQRLController < DeviseController
   # browser and carries no CSRF token.
   skip_forgery_protection only: %i[cli script]
   # Polls and protocol requests must not count as user activity for :timeoutable.
-  prepend_before_action(only: %i[cli status script]) { request.env["devise.skip_timeout"] = true }
+  prepend_before_action(only: %i[cli status script refresh]) { request.env["devise.skip_timeout"] = true }
+
+  # A before_issue / before_handle hook refused the request.
+  rescue_from ::SQRL::Server::RateLimited do |error|
+    render_sqrl_rack(sqrl_endpoint.rate_limited(error, json: request.format.json?))
+  end
+
+  # The request host may not be used to issue SQRL URLs.
+  rescue_from ::SQRL::Rack::HostNotAllowed do |error|
+    render plain: error.message, status: :bad_request
+  end
+  # Identity management is for the signed-in resource of this scope.
+  prepend_before_action :authenticate_scope!, only: %i[identities unlink]
 
   # GET /users/sqrl : a stand-alone SQRL login page (the view issues the login URL
   # through +sqrl_login_block_for+; the JSON form issues it here).
@@ -34,6 +46,11 @@ class Devise::SQRLController < DeviseController
   # GET /users/sqrl/status : {"authenticated": bool, "next": url}
   def status
     render_sqrl_rack(sqrl_endpoint.status(request))
+  end
+
+  # GET /users/sqrl/refresh : a fresh login URL for this browser session, as JSON.
+  def refresh
+    render_sqrl_rack(sqrl_endpoint.refresh(request))
   end
 
   # GET /users/sqrl/sqrl.js
@@ -65,7 +82,35 @@ class Devise::SQRLController < DeviseController
     sign_in_and_redirect(resource_name, resource, event: :authentication)
   end
 
+  # GET /users/sqrl/identities : the SQRL identities linked to the signed-in resource.
+  def identities
+    @identities = resource.sqrl_identities.order(:created_at)
+    @current_idk = sqrl_endpoint.current_identity(request)&.idk_b64
+  end
+
+  # DELETE /users/sqrl/identities/:id : detach one identity from the signed-in resource.
+  # The site keeps the protocol association; the next login with that identity is
+  # treated as an unknown identity again.
+  def unlink
+    identity = resource.sqrl_identities.find_by(id: params[:id])
+    if identity
+      current = sqrl_endpoint.current_identity(request)&.idk_b64
+      resource.unlink_sqrl_identity!(identity)
+      sqrl_endpoint.logout(request) if current && current == identity.idk
+      set_flash_message!(:notice, :identity_unlinked)
+    else
+      set_flash_message!(:alert, :identity_not_found)
+    end
+    redirect_to identities_sqrl_path(resource_name), status: :see_other
+  end
+
   protected
+
+  # Like Devise's registrations controller: the signed-in resource of this scope.
+  def authenticate_scope!
+    send(:"authenticate_#{resource_name}!", force: true)
+    self.resource = send(:"current_#{resource_name}")
+  end
 
   # Redirect to the SQRL login page (or +Devise.sqrl_failure_path+) with the reason.
   def failure(reason)

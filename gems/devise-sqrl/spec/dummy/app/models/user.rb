@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class User < ActiveRecord::Base
-  devise :database_authenticatable, :rememberable, :trackable, :validatable, :sqrl_authenticatable
+  devise :database_authenticatable, :rememberable, :trackable, :validatable, :recoverable, :sqrl_authenticatable
 
   # Simulates :confirmable style gating in specs.
   attr_accessor :inactive

@@ -22,8 +22,15 @@ Pages: `/` (home, shows the signed-in state), `/protected` (redirects anonymous 
 to the sign-in page), `/users/sqrl` (SQRL-only login page). Log out with the "Log out"
 button (`DELETE /users/sign_out`).
 
-Environment variables: `PORT`, `BIND`, `SQRL_HOST` (public host for the `sqrl://` URLs).
+Environment variables: `PORT`, `BIND`, `SQRL_HOST` (public host for the `sqrl://` URLs),
+`SQRL_ASK=1` (pose an "Allow this login?" question with Allow/Deny buttons; Deny refuses
+the login), `SQRL_SIN=1` (send a secret-index challenge).
 
 Routes added by Devise for `:sqrl_authenticatable`: `GET /users/sqrl`,
 `POST /users/sqrl/cli` (protocol endpoint), `GET /users/sqrl/status`,
-`GET /users/sqrl/callback`, `GET /users/sqrl/sqrl.js`.
+`GET /users/sqrl/callback`, `GET /users/sqrl/sqrl.js`, `GET /users/sqrl/identities`
+(manage linked identities), `DELETE /users/sqrl/identities/:id`.
+
+Account policies: a user whose SQRL client asked for `sqrlonly` cannot log in with a
+password (Devise's password strategy is refused with "This account signs in with SQRL
+only."), and one who asked for `hardlock` cannot request or perform a password reset.

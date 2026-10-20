@@ -11,8 +11,8 @@ RSpec.describe Devise::SQRL::Generators::InstallGenerator do
     FileUtils.mkdir_p(File.join(dir, "config/initializers"))
     FileUtils.mkdir_p(File.join(dir, "db/migrate"))
     File.write(File.join(dir, "app/models/user.rb"),
-               "class User < ApplicationRecord\n  devise :database_authenticatable, :registerable,\n" \
-               "         :recoverable, :rememberable, :validatable\nend\n")
+               "class User < ApplicationRecord\n  devise :database_authenticatable, :registerable,\n         " \
+               ":recoverable, :rememberable, :validatable\nend\n")
     File.write(File.join(dir, "app/views/devise/sessions/new.html.erb"), "<h2>Log in</h2>\n")
   end
 

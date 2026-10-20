@@ -5,6 +5,8 @@ module SQRL
     # The SQRL endpoint: the client's signed POSTs. Authenticated by the protocol's own
     # signatures, so forgery protection does not apply.
     class CliController < ApplicationController
+      include RateLimited
+
       skip_forgery_protection
 
       def create

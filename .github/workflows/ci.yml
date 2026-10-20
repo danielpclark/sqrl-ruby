@@ -6,6 +6,18 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    name: RuboCop
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - name: RuboCop
+        run: gem install --no-document rubocop && rubocop --parallel
+
   gems:
     name: Gem specs (Ruby ${{ matrix.ruby }})
     runs-on: ubuntu-latest
@@ -21,6 +33,26 @@ jobs:
           bundler-cache: true
       - name: Gem specs
         run: bundle exec rake spec:gems
+
+  rails-matrix:
+    name: sqrl-rails + devise-sqrl on ${{ matrix.gemfile }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gemfile: [rails_7_1, rails_7_2, rails_8_0]
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/${{ matrix.gemfile }}.gemfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - name: sqrl-rails specs
+        run: bundle exec rspec -I gems/sqrl-rails/lib -I gems/sqrl-rails/spec --default-path gems/sqrl-rails/spec gems/sqrl-rails/spec
+      - name: devise-sqrl specs
+        run: bundle exec rspec -I gems/devise-sqrl/lib -I gems/devise-sqrl/spec --default-path gems/devise-sqrl/spec gems/devise-sqrl/spec
 
   integration:
     name: Integration (example apps, bot client, headless browser)

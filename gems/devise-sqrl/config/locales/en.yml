@@ -5,5 +5,12 @@ en:
       sqrl_disabled: "SQRL login is disabled for this account."
       sqrl_unknown: "This SQRL identity is not linked to an account."
       sqrl_link_required: "Sign in first, then link your SQRL identity to your account."
+      sqrl_declined: "You declined the SQRL login."
+      sqrl_only: "This account signs in with SQRL only."
     sqrl:
       signed_in: "Signed in successfully."
+      identity_unlinked: "SQRL identity unlinked."
+      identity_not_found: "That SQRL identity is not linked to your account."
+  errors:
+    messages:
+      sqrl_hard_locked: "Password recovery is disabled for this account; sign in with SQRL instead."

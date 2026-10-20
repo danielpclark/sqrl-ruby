@@ -1,0 +1,27 @@
+<h1>Your SQRL identities</h1>
+<% if flash[:alert] %><p class="sqrl-alert" role="alert"><%= flash[:alert] %></p><% end %>
+<% if flash[:notice] %><p class="sqrl-notice" role="status"><%= flash[:notice] %></p><% end %>
+
+<% if @identities.empty? %>
+  <p id="sqrl-no-identities">No SQRL identity is linked to your account yet.</p>
+<% else %>
+  <table class="sqrl-identities">
+    <thead>
+      <tr><th>Identity</th><th>Linked</th><th>Last login</th><th>Logins</th><th>Flags</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% @identities.each do |identity| %>
+        <tr id="sqrl-identity-<%= identity.id %>" data-sqrl-idk="<%= identity.idk %>">
+          <td><code><%= identity.short_idk %></code><% if identity.idk == @current_idk %> <em>(this session)</em><% end %></td>
+          <td><%= identity.created_at&.to_fs(:short) %></td>
+          <td><%= identity.last_login_at&.to_fs(:short) || "never" %></td>
+          <td><%= identity.logins %></td>
+          <td><%= identity.flags.join(", ") %></td>
+          <td><%= button_to "Unlink", identity_unlink_path(identity), method: :delete,
+                            form: { data: { turbo_confirm: "Unlink this SQRL identity?" } } %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+<p><%= link_to "Back", main_app.respond_to?(:root_path) ? main_app.root_path : "/" %></p>

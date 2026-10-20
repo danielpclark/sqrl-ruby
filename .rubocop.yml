@@ -31,6 +31,9 @@ Style/ClassAndModuleChildren:
   Enabled: false
 Style/OptionalBooleanParameter:
   Enabled: false
+Style/ClassVars:
+  Exclude:
+    - "gems/devise-sqrl/lib/devise/sqrl.rb"   # Devise's mattr_accessor configuration idiom
 Style/RedundantFetchBlock:   # rewrites fetch(key) { } on non-Hash receivers too
   Enabled: false
 
@@ -87,4 +90,8 @@ Naming/FileName:
 Gemspec/RequireMFA:
   Enabled: false
 Gemspec/DevelopmentDependencies:
+  Enabled: false
+Gemspec/RequiredRubyVersion:
+  Enabled: false   # the Rails gems require 3.2, the others 3.1
+Lint/DuplicateBranch:
   Enabled: false

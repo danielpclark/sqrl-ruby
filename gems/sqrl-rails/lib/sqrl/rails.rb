@@ -23,10 +23,10 @@ module SQRL
     class Error < SQRL::Error; end
 
     ENGINE_PATHS = { cli: "/cli", status: "/status", callback: "/callback", login: "/login",
-                     script: "/sqrl.js" }.freeze
+                     script: "/sqrl.js", identities: "/identities", refresh: "/refresh" }.freeze
 
     @mutex = Mutex.new
-    @endpoints = {}
+    @host_resolver = nil
 
     class << self
       # The application-wide configuration (+Rails.application.config.sqrl+).
@@ -46,9 +46,23 @@ module SQRL
       # Forget memoized handlers, endpoints and stores (tests, configuration changes).
       def reset!
         @mutex.synchronize do
-          @endpoints = {}
+          @host_resolver = nil
           @stores = nil
           @mount_path = nil
+        end
+      end
+
+      # The {SQRL::Rack::HostResolver} deciding which host and scheme SQRL URLs are issued
+      # for, built from +config.host+, +config.scheme+, +config.allowed_hosts+ and
+      # +config.host_cache_limit+. It also bounds the per-host endpoint cache.
+      #
+      # @return [SQRL::Rack::HostResolver]
+      def host_resolver
+        @mutex.synchronize do
+          @host_resolver ||= SQRL::Rack::HostResolver.new(host: config.host.presence, scheme: config.scheme.presence,
+                                                          allowed_hosts: config.allowed_hosts,
+                                                          limit: config.host_cache_limit,
+                                                          logger: config.logger || ::Rails.logger)
         end
       end
 
@@ -63,20 +77,44 @@ module SQRL
       end
 
       # The {SQRL::Rack::Endpoint} for a request's host and scheme, built lazily and
-      # memoized per [host, scheme].
+      # memoized per [host, scheme] in a bounded cache.
       #
       # @param request [ActionDispatch::Request, Rack::Request]
       # @return [SQRL::Rack::Endpoint]
+      # @raise [SQRL::Rack::HostNotAllowed] when the request host may not be used
       def endpoint_for(request)
-        host = config.host.presence || request.host_with_port
-        scheme = config.scheme.presence || default_scheme(request, host)
-        key = [host, scheme]
-        @mutex.synchronize { @endpoints[key] ||= build_endpoint(host, scheme) }
+        resolver = host_resolver
+        host, scheme = resolver.resolve(request)
+        resolver.fetch([host, scheme]) { build_endpoint(host, scheme) }
       end
 
       # The {Server::Handler} for a request (see {endpoint_for}).
       def handler_for(request)
         endpoint_for(request).handler
+      end
+
+      # Whether any active SQRL identity of +user+ asked the site to disable every other
+      # (non-SQRL) way of authenticating (+opt=sqrlonly+). Password logins for such a
+      # user must be refused; see {PasswordPolicy}.
+      #
+      # @param user [Object, nil]
+      # @return [Boolean]
+      def sqrl_only?(user)
+        return false if user.nil?
+
+        Identity.active.for_user(user).where(sqrlonly: true).exists?
+      end
+
+      # Whether any active SQRL identity of +user+ asked the site to disable every other
+      # (non-SQRL) way of recovering the account (+opt=hardlock+). Password resets for
+      # such a user must be refused; see {PasswordPolicy}.
+      #
+      # @param user [Object, nil]
+      # @return [Boolean]
+      def hard_locked?(user)
+        return false if user.nil?
+
+        Identity.active.for_user(user).where(hardlock: true).exists?
       end
 
       # Opaque reference stored on SQRL identities to point at the application's user:
@@ -110,8 +148,10 @@ module SQRL
         return nil unless Object.const_defined?(:Authentication)
 
         concern = Object.const_get(:Authentication)
-        concern.is_a?(Module) && concern.instance_methods(false).include?(:start_new_session_for) ||
-          (concern.is_a?(Module) && concern.private_instance_methods(false).include?(:start_new_session_for)) ? concern : nil
+        if (concern.is_a?(Module) && concern.method_defined?(:start_new_session_for, false)) ||
+           (concern.is_a?(Module) && concern.private_method_defined?(:start_new_session_for, false))
+          concern
+        end
       rescue NameError
         nil
       end
@@ -122,26 +162,23 @@ module SQRL
         case value
         when nil, :active_record, "active_record" then Stores::ActiveRecord.stores
         when :memory, "memory" then Server::Memory.stores
+        when :cache, "cache" then Stores::Cache.stores(config.cache_store || ::Rails.cache)
         when Server::Stores then value
         else
-          raise Error, "config.sqrl.stores must be :active_record, :memory or an SQRL::Server::Stores"
+          raise Error, "config.sqrl.stores must be :active_record, :cache, :memory or an SQRL::Server::Stores"
         end
-      end
-
-      def default_scheme(request, host)
-        bare = host.to_s.sub(/:\d+\z/, "").downcase
-        request.scheme == "http" && SQRL::URL.loopback?(bare) ? "qrl" : "sqrl"
       end
 
       def build_endpoint(host, scheme)
         mount = mount_path
         server_config = Server::Config.new(**config.server_options, host: host, scheme: scheme,
-                                                                     path: "#{mount}#{ENGINE_PATHS[:cli]}",
-                                                                     callback_path: "#{mount}#{ENGINE_PATHS[:callback]}")
+                                                                    path: "#{mount}#{ENGINE_PATHS[:cli]}",
+                                                                    callback_path: "#{mount}#{ENGINE_PATHS[:callback]}")
         handler = Server::Handler.new(config: server_config, stores: stores)
         SQRL::Rack::Endpoint.new(handler: handler, session_key: config.session_key, identity_key: config.identity_key,
                                  status_path: ENGINE_PATHS[:status], callback_path: ENGINE_PATHS[:callback],
-                                 script_path: ENGINE_PATHS[:script], ip: config.ip || method(:client_ip))
+                                 script_path: ENGINE_PATHS[:script], refresh_path: ENGINE_PATHS[:refresh],
+                                 ip: config.ip || method(:client_ip))
       end
 
       def client_ip(request)
@@ -169,7 +206,10 @@ end
 
 require_relative "rails/configuration"
 require_relative "rails/stores/active_record"
+require_relative "rails/stores/cache"
 require_relative "rails/user_factory"
 require_relative "rails/sign_in"
 require_relative "rails/controller_helpers"
+require_relative "rails/password_policy"
+require_relative "rails/rate_limited"
 require_relative "rails/engine"

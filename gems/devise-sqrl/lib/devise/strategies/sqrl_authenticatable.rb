@@ -22,6 +22,7 @@ module Devise
 
         identity = completion.identity
         return fail!(:sqrl_disabled) if identity.disabled?
+        return fail!(:sqrl_declined) if declined?(completion)
 
         resource = mapping.to.find_for_sqrl(identity) || resource_for_unknown(identity)
         return if halted?
@@ -40,6 +41,12 @@ module Devise
       end
 
       private
+
+      # The client answered the site's +ask+ with the configured "deny" button.
+      def declined?(completion)
+        deny = ::SQRL::Rails.config.ask_deny_button
+        !deny.nil? && completion.pending_login.btn == deny.to_i
+      end
 
       def resource_for_unknown(identity)
         case Devise::SQRL.on_unknown_identity

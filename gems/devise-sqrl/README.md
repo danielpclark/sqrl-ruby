@@ -38,6 +38,8 @@ end
 | `GET  /users/sqrl/status` | cookie-bound poll for logins made from another device |
 | `GET  /users/sqrl/callback` | login completion (CPS `url=` or poll), signs the user in |
 | `GET  /users/sqrl/sqrl.js` | the browser-side script |
+| `GET  /users/sqrl/refresh` | a fresh login URL for the page (JSON) |
+| `GET  /users/sqrl/identities` | the signed-in user's identities, with Unlink |
 
 ## How a login completes
 
@@ -95,6 +97,29 @@ Model API: `user.sqrl_identities`, `user.sqrl_linked?`, `user.sqrl_identity_for(
 
 Failure messages are Devise translations under `devise.failure`: `sqrl_invalid`,
 `sqrl_disabled`, `sqrl_unknown`, `sqrl_link_required`.
+
+## Account policies: `sqrlonly` and `hardlock`
+
+An identity that asked for `sqrlonly` makes `user.sqrl_only?` true: Devise's password
+strategy (and any strategy in `Devise.sqrl_only_blocked_strategies`) is then refused
+with the `devise.failure.sqrl_only` message, while SQRL logins, remember-me cookies and
+restored sessions keep working. An identity that asked for `hardlock` makes
+`user.hard_locked?` true: `send_reset_password_instructions` and `reset_password`
+(`:recoverable`) add the `errors.messages.sqrl_hard_locked` error instead of acting.
+
+## Identity management
+
+`GET /users/sqrl/identities` (`identities_user_sqrl_path`) lists the signed-in user's
+identities with an Unlink button (`DELETE /users/sqrl/identities/:id`,
+`unlink_identity_user_sqrl_path`). Unlinking calls `unlink_sqrl_identity!`.
+
+## `ask`, `sin`, hooks and the refresh route
+
+Protocol settings come from `Rails.application.config.sqrl` exactly as in `sqrl-rails`:
+`ask` (with `accept:` and `ask_deny_button`), `sin`, `rate_limit`, `before_issue`,
+`before_handle`, `allowed_hosts`, `host_cache_limit`, `prune_every`. A hook that raises
+`SQRL::Server::RateLimited` gets a 429; a disallowed host a 400. `GET /users/sqrl/refresh`
+hands the page a fresh login URL when a nut expires.
 
 ## Custom controller
 
