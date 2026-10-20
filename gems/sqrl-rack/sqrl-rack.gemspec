@@ -13,14 +13,15 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://github.com/danielpclark/ruby_sqrl"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"
-  spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["homepage_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = "#{spec.homepage}/tree/main/gems/sqrl-rack"
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/gems/sqrl-rack/CHANGELOG.md"
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
   spec.metadata["documentation_uri"] = "#{spec.homepage}/blob/main/gems/sqrl-rack/README.md"
   spec.metadata["rubygems_mfa_required"] = "true"
   spec.files = Dir["lib/**/*", "assets/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
   spec.require_paths = ["lib"]
-  spec.add_dependency "rack", ">= 2.2"
+  spec.add_dependency "rack", ">= 2.2", "< 4"
   spec.add_dependency "rqrcode", "~> 3.0"
-  spec.add_dependency "sqrl-core", SQRL::VERSION
+  spec.add_dependency "sqrl-core", "~> #{SQRL::VERSION}"
 end

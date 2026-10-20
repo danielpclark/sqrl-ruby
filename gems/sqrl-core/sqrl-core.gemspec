@@ -14,7 +14,8 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://github.com/danielpclark/ruby_sqrl"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"
-  spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["homepage_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = "#{spec.homepage}/tree/main/gems/sqrl-core"
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/gems/sqrl-core/CHANGELOG.md"
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
   spec.metadata["documentation_uri"] = "#{spec.homepage}/blob/main/gems/sqrl-core/README.md"

@@ -11,7 +11,8 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://github.com/danielpclark/ruby_sqrl"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"
-  spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["homepage_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = "#{spec.homepage}/tree/main/gems/omniauth-sqrl"
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/gems/omniauth-sqrl/CHANGELOG.md"
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
   spec.metadata["documentation_uri"] = "#{spec.homepage}/blob/main/gems/omniauth-sqrl/README.md"
@@ -19,6 +20,6 @@ Gem::Specification.new do |spec|
   spec.files = Dir["lib/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
   spec.require_paths = ["lib"]
   spec.add_dependency "omniauth", "~> 2.0"
-  spec.add_dependency "sqrl-core", SQRL::VERSION
-  spec.add_dependency "sqrl-rack", SQRL::VERSION
+  spec.add_dependency "sqrl-core", "~> #{SQRL::VERSION}"
+  spec.add_dependency "sqrl-rack", "~> #{SQRL::VERSION}"
 end
