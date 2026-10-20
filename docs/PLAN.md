@@ -1042,3 +1042,14 @@ SQRL carries account-policy signals that phase 1 stored but did not act on.
 
 P1 and P2 run together (they touch different files); P3.1 and P3.2 can start at once; P3.3
 after P2.2 (it adds an endpoint); P3.4 and P4 after everything else is green.
+
+### Status (2026-10-20, end of phase 2)
+
+Delivered: P1.1–P1.4, P2.1–P2.6, P3.1–P3.3, and the P4.1 proposal document
+(`docs/api-auth.md`). Counts: 475 gem examples, 240 live integration examples across six
+example applications (each booted twice, the second time with `ask` and `sin` enabled),
+4 interop examples, RuboCop clean, Rails 7.1/7.2/8.0 matrix green for `sqrl-rails` and
+`devise-sqrl`.
+
+Open: P3.4 (reverse interop job), P4.2 (SSP API study) and P4.3 (push channel), plus the
+P4.1 prototype once the proposal is agreed.
