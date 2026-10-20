@@ -54,7 +54,7 @@ module RustServer
     end
   end
 
-  # The Rust test site's page is `GET /` with the qrl:// URL in a <code> element and a
+  # The Rust test site's page is `GET /` with its (plain-http, test-only) qrl:// URL in a <code> element and a
   # `session=` id; its poll endpoint is /status?session=ID (not cookie-bound) and its CPS
   # landing /loggedin?session=ID.
   class Site < SQRL::Client::Conformance::Site
@@ -87,7 +87,10 @@ RSpec.describe "Ruby client against the Rust reference server", :interop do
       login_url: "#{server.base_url}/", site: RustServer::Site.new(login_url: "#{server.base_url}/"),
       # The Rust test server keys its CPS landing by session id rather than a one-time token
       # and has no cookie-bound callback, so those two cases do not apply to it.
-      features: { cps_single_use: false, concurrency: true }.merge(features), only: only
+      features: { cps_single_use: false, concurrency: true }.merge(features), only: only,
+      # The extension's test server speaks plain http on localhost with qrl:// URLs: that is
+      # its own test mode, not SQRL as specified, so the client must opt into it.
+      insecure: true
     )
   end
 
@@ -126,7 +129,8 @@ RSpec.describe "Ruby client against the Rust reference server", :interop do
   it "logs in with the Agent and lands on the Rust server's logged-in page" do
     server = RustServer::Instance.new
     begin
-      agent = SQRL::Client::Agent.new(identity: SQRL::Client::Identity.ephemeral("interop"))
+      # insecure: the Rust test server's plain-http/qrl:// test mode (see runner_for).
+      agent = SQRL::Client::Agent.new(identity: SQRL::Client::Identity.ephemeral("interop"), insecure: true)
       result = agent.login("#{server.base_url}/")
       expect(result).to be_authenticated
       expect(result).to be_created

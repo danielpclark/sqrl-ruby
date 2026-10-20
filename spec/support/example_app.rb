@@ -5,54 +5,89 @@ require "net/http"
 require "timeout"
 require "open3"
 require "rbconfig"
+require "openssl"
+require "tmpdir"
+require "fileutils"
 
 # Boots one of the example applications under examples/ as a separate process, with its own
 # Gemfile, on a free 127.0.0.1 port, and tears it down afterwards. Used by the integration
 # specs so that every framework is exercised as a real, independently bundled application.
+#
+# Every app is served over HTTPS with a self-signed certificate generated once per run, so
+# the login pages carry real `sqrl://` URLs (which always mean HTTPS) and the bot client
+# verifies TLS against {ExampleApp.ca_file} exactly as it would against a public CA.
 class ExampleApp
   ROOT = File.expand_path("../../examples", __dir__)
 
   # name:      directory under examples/
-  # command:   argv to start the server; "%PORT%" is substituted
-  # ready_path: path that must answer 200 before the app counts as up
+  # command:   argv to start the server; %PORT%, %KEY% and %CERT% are substituted
+  # ready_path: path that must answer before the app counts as up
   Definition = Struct.new(:name, :command, :ready_path, :env, :setup, keyword_init: true)
 
+  RACKUP_TLS = %w[bundle exec puma --bind ssl://127.0.0.1:%PORT%?key=%KEY%&cert=%CERT% config.ru].freeze
+  RAILS_TLS = %w[bundle exec bin/rails server -b ssl://127.0.0.1:%PORT%?key=%KEY%&cert=%CERT% -e test].freeze
+
   DEFINITIONS = {
-    "rack-app" => Definition.new(
-      name: "rack-app",
-      command: %w[bundle exec rackup --host 127.0.0.1 --port %PORT% config.ru],
-      ready_path: "/"
-    ),
-    "sinatra-app" => Definition.new(
-      name: "sinatra-app",
-      command: %w[bundle exec rackup --host 127.0.0.1 --port %PORT% config.ru],
-      ready_path: "/"
-    ),
-    "omniauth-app" => Definition.new(
-      name: "omniauth-app",
-      command: %w[bundle exec rackup --host 127.0.0.1 --port %PORT% config.ru],
-      ready_path: "/"
-    ),
-    "roda-app" => Definition.new(
-      name: "roda-app",
-      command: %w[bundle exec rackup --host 127.0.0.1 --port %PORT% config.ru],
-      ready_path: "/"
-    ),
+    "rack-app" => Definition.new(name: "rack-app", command: RACKUP_TLS, ready_path: "/"),
+    "sinatra-app" => Definition.new(name: "sinatra-app", command: RACKUP_TLS, ready_path: "/"),
+    "omniauth-app" => Definition.new(name: "omniauth-app", command: RACKUP_TLS, ready_path: "/"),
+    "roda-app" => Definition.new(name: "roda-app", command: RACKUP_TLS, ready_path: "/"),
     "rails-auth-app" => Definition.new(
       name: "rails-auth-app",
-      command: %w[bundle exec bin/rails server -b 127.0.0.1 -p %PORT% -e test],
+      command: RAILS_TLS,
       ready_path: "/",
       env: { "RAILS_ENV" => "test" },
       setup: %w[bundle exec bin/rails db:prepare]
     ),
     "devise-app" => Definition.new(
       name: "devise-app",
-      command: %w[bundle exec bin/rails server -b 127.0.0.1 -p %PORT% -e test],
+      command: RAILS_TLS,
       ready_path: "/",
       env: { "RAILS_ENV" => "test" },
       setup: %w[bundle exec bin/rails db:prepare]
     )
   }.freeze
+
+  TLS_MUTEX = Mutex.new
+
+  # Paths of the self-signed key and certificate shared by every example app in this run
+  # (CN and subjectAltName 127.0.0.1 / localhost, valid for one day). Generated lazily, once.
+  #
+  # @return [Hash{Symbol => String}] +:key+ and +:cert+ file paths
+  def self.tls
+    TLS_MUTEX.synchronize do
+      @tls ||= begin
+        dir = Dir.mktmpdir("sqrl-example-tls")
+        at_exit { FileUtils.rm_rf(dir) }
+        key = OpenSSL::PKey::RSA.new(2048)
+        cert = OpenSSL::X509::Certificate.new
+        cert.version = 2
+        cert.serial = OpenSSL::BN.rand(64)
+        cert.subject = OpenSSL::X509::Name.parse("/CN=127.0.0.1")
+        cert.issuer = cert.subject
+        cert.public_key = key.public_key
+        cert.not_before = Time.now - 60
+        cert.not_after = Time.now + 86_400
+        ef = OpenSSL::X509::ExtensionFactory.new
+        ef.subject_certificate = cert
+        ef.issuer_certificate = cert
+        cert.add_extension(ef.create_extension("basicConstraints", "CA:TRUE", true))
+        cert.add_extension(ef.create_extension("keyUsage", "digitalSignature,keyEncipherment,keyCertSign", true))
+        cert.add_extension(ef.create_extension("subjectAltName", "IP:127.0.0.1,DNS:localhost"))
+        cert.add_extension(ef.create_extension("subjectKeyIdentifier", "hash"))
+        cert.sign(key, OpenSSL::Digest.new("SHA256"))
+        key_file = File.join(dir, "key.pem")
+        cert_file = File.join(dir, "cert.pem")
+        File.write(key_file, key.to_pem)
+        File.write(cert_file, cert.to_pem)
+        File.chmod(0o600, key_file)
+        { key: key_file, cert: cert_file }
+      end
+    end
+  end
+
+  # The certificate file a TLS client should trust for the example apps.
+  def self.ca_file = tls[:cert]
 
   attr_reader :name, :port, :log
 
@@ -83,7 +118,7 @@ class ExampleApp
   end
 
   def base_url
-    "http://127.0.0.1:#{@port}"
+    "https://127.0.0.1:#{@port}"
   end
 
   def url(path = "/")
@@ -98,7 +133,6 @@ class ExampleApp
       "PATH" => path,
       "PORT" => @port.to_s,
       "SQRL_HOST" => "127.0.0.1:#{@port}",
-      "SQRL_SCHEME" => "qrl",
       "BUNDLE_GEMFILE" => File.join(dir, "Gemfile"),
       "RAILS_LOG_TO_STDOUT" => "1",
       "SECRET_KEY_BASE" => "integration-test-secret-key-base-not-for-production-#{@port}"
@@ -107,7 +141,10 @@ class ExampleApp
 
   def start
     run_setup
-    command = @definition.command.map { |c| c.sub("%PORT%", @port.to_s) }
+    tls = self.class.tls
+    command = @definition.command.map do |c|
+      c.sub("%PORT%", @port.to_s).sub("%KEY%", tls[:key]).sub("%CERT%", tls[:cert])
+    end
     @stdin, @stdout, @wait = Open3.popen2e(environment, *command, chdir: dir, pgroup: true)
     @reader = Thread.new do
       @stdout.each_line { |line| @log << line }
@@ -159,11 +196,13 @@ class ExampleApp
       raise "#{@name} exited during boot:\n#{@log}" unless running?
 
       begin
-        response = Net::HTTP.start("127.0.0.1", @port, open_timeout: 1, read_timeout: 5) do |http|
+        # Readiness only: the real clients verify the certificate against ExampleApp.ca_file.
+        response = Net::HTTP.start("127.0.0.1", @port, use_ssl: true, verify_mode: OpenSSL::SSL::VERIFY_NONE,
+                                                       open_timeout: 1, read_timeout: 5) do |http|
           http.get(@definition.ready_path)
         end
         return if response.code.to_i < 500
-      rescue SystemCallError, Net::OpenTimeout, Net::ReadTimeout, IOError
+      rescue SystemCallError, Net::OpenTimeout, Net::ReadTimeout, IOError, OpenSSL::SSL::SSLError
         nil
       end
       raise "#{@name} did not become ready on port #{@port} within #{@boot_timeout}s:\n#{@log}" if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline

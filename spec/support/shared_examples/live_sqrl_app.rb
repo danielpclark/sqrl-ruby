@@ -104,7 +104,8 @@ RSpec.shared_examples "a live SQRL example app" do
     it "renders the login block, initialises sqrl.js and keeps the direct link when no local client answers" do
       open_login_page
       link = page.find("a[data-sqrl-link]")
-      expect(link[:href]).to match(%r{\As?qrl://127\.0\.0\.1:#{app.port}/})
+      # Real SQRL: sqrl:// (HTTPS). qrl:// is the browser extension's plain-http test mode only.
+      expect(link[:href]).to match(%r{\Asqrl://127\.0\.0\.1:#{app.port}/})
       expect(page).to have_css("[data-sqrl-login] svg[role='img']")
       expect(page).to have_css("a[data-sqrl-link][data-sqrl-cps='false']", wait: 10)
       expect(page).to have_css("[data-sqrl-message]")
@@ -112,7 +113,7 @@ RSpec.shared_examples "a live SQRL example app" do
 
     it "logs the browser in through the CPS handoff" do
       open_login_page
-      result = SQRL::Client::Capybara.login(page, identity: ephemeral)
+      result = SQRL::Client::Capybara.login(page, identity: ephemeral, transport: new_transport)
       expect(result).to be_authenticated
       expect_browser_logged_in
       page.visit(app.url(descriptor.protected_path))
@@ -129,7 +130,7 @@ RSpec.shared_examples "a live SQRL example app" do
 
     it "completes a non-CPS login through the page's own poller" do
       open_login_page
-      result = SQRL::Client::Capybara.login(page, identity: ephemeral, cps: false, wait: 15)
+      result = SQRL::Client::Capybara.login(page, identity: ephemeral, cps: false, wait: 15, transport: new_transport)
       expect(result).to be_authenticated
       expect(result.cps_url).to be_nil
       expect_browser_logged_in

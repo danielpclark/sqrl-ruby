@@ -21,6 +21,9 @@ class SinatraApp < Sinatra::Base
   set :sqrl,
       stores: STORES,
       host: ENV["SQRL_HOST"],
+      # sqrl:// always means HTTPS; SQRL_INSECURE_HTTP=1 enables the non-standard plain-http
+      # loopback mode (qrl:// URLs) for testing with the browser extension only.
+      insecure_http: ENV["SQRL_INSECURE_HTTP"] == "1",
       after_login: "/protected",
       on_unknown_identity: (ENV["SQRL_UNKNOWN_IDENTITY"] || :create).to_sym,
       require_ip_match: ENV["SQRL_IGNORE_IP"].nil?,

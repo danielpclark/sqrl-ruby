@@ -1,4 +1,17 @@
 #!/usr/bin/env ruby
-# Start the example on PORT (default 3000). Set SQRL_HOST when the public host differs
-# from what the browser sends (for example behind a tunnel).
-exec "./bin/rails", "server", "-p", ENV.fetch("PORT", "3000"), "-b", ENV.fetch("BIND", "127.0.0.1"), *ARGV
+# frozen_string_literal: true
+
+# Start the example on PORT (default 3000). Set SQRL_HOST when the public host differs from
+# what the browser sends (for example behind a tunnel).
+#
+# SQRL URLs are sqrl:// and always mean HTTPS, so a real SQRL client needs this server behind
+# TLS. Either put a TLS proxy in front, or give Puma a key and certificate:
+#   SQRL_TLS_KEY=key.pem SQRL_TLS_CERT=cert.pem bin/dev
+# For plain http with the browser extension's local (non-standard qrl://) test mode:
+#   SQRL_INSECURE_HTTP=1 bin/dev
+port = ENV.fetch("PORT", "3000")
+bind = ENV.fetch("BIND", "127.0.0.1")
+if ENV["SQRL_TLS_KEY"] && ENV["SQRL_TLS_CERT"]
+  exec "./bin/rails", "server", "-b", "ssl://#{bind}:#{port}?key=#{ENV["SQRL_TLS_KEY"]}&cert=#{ENV["SQRL_TLS_CERT"]}", *ARGV
+end
+exec "./bin/rails", "server", "-p", port, "-b", bind, *ARGV

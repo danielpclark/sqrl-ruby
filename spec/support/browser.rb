@@ -20,7 +20,9 @@ module BrowserSupport
         browser_path: browser_path,
         timeout: 15,
         process_timeout: 30,
-        browser_options: { "no-sandbox" => nil, "disable-gpu" => nil, "disable-dev-shm-usage" => nil }
+        # The example apps run over HTTPS with a per-run self-signed certificate.
+        browser_options: { "no-sandbox" => nil, "disable-gpu" => nil, "disable-dev-shm-usage" => nil,
+                           "ignore-certificate-errors" => nil }
       )
     end
     Capybara.default_driver = :sqrl_cuprite

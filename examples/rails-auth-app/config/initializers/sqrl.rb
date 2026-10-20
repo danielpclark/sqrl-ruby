@@ -7,6 +7,11 @@ Rails.application.config.sqrl.tap do |sqrl|
   # When nil, the host of each request is used.
   sqrl.host = ENV["SQRL_HOST"].presence
 
+  # sqrl:// URLs always mean HTTPS. SQRL_INSECURE_HTTP=1 switches a loopback host to the
+  # non-standard plain-http mode (qrl:// URLs) that only the browser extension's local test
+  # flow understands; never use it for anything but local testing.
+  sqrl.insecure_http = ENV["SQRL_INSECURE_HTTP"] == "1"
+
   # The user model.
   sqrl.user_class = "User"
 

@@ -27,6 +27,9 @@ use Rack::Session::Cookie,
 use SQRL::Rack::Middleware,
     stores: STORES,
     host: ENV["SQRL_HOST"],
+    # SQRL URLs are sqrl:// and always mean HTTPS. Only for plain-http testing on a loopback
+    # host with the browser extension's local flow (non-standard qrl:// URLs):
+    insecure_http: ENV["SQRL_INSECURE_HTTP"] == "1",
     after_login: "/protected",
     on_unknown_identity: (ENV["SQRL_UNKNOWN_IDENTITY"] || :create).to_sym,
     require_ip_match: ENV["SQRL_IGNORE_IP"].nil?,

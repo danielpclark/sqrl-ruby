@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
+# Start the example on PORT (default 9292).
+#
+# SQRL URLs are sqrl:// and always mean HTTPS, so a real SQRL client needs this server behind
+# TLS. Either put a TLS proxy in front, or give Puma a key and certificate:
+#   SQRL_TLS_KEY=key.pem SQRL_TLS_CERT=cert.pem bin/dev
+# For plain http with the browser extension's local (non-standard qrl://) test mode:
+#   SQRL_INSECURE_HTTP=1 bin/dev
 set -euo pipefail
 cd "$(dirname "$0")/.."
-export SQRL_HOST="${SQRL_HOST:-localhost:${PORT:-9292}}"
-exec bundle exec rackup -p "${PORT:-9292}" -o 127.0.0.1 "$@"
+PORT="${PORT:-9292}"
+export SQRL_HOST="${SQRL_HOST:-localhost:${PORT}}"
+if [ -n "${SQRL_TLS_KEY:-}" ] && [ -n "${SQRL_TLS_CERT:-}" ]; then
+  exec bundle exec puma --bind "ssl://127.0.0.1:${PORT}?key=${SQRL_TLS_KEY}&cert=${SQRL_TLS_CERT}" config.ru "$@"
+fi
+exec bundle exec rackup -p "${PORT}" -o 127.0.0.1 "$@"

@@ -23,6 +23,9 @@ class OmniauthApp < Sinatra::Base
     provider :sqrl,
              stores: OmniauthApp::STORES,
              host: ENV["SQRL_HOST"],
+             # sqrl:// always means HTTPS; SQRL_INSECURE_HTTP=1 enables the non-standard
+             # plain-http loopback mode (qrl:// URLs) for the browser extension's test flow.
+             insecure_http: ENV["SQRL_INSECURE_HTTP"] == "1",
              on_unknown_identity: (ENV["SQRL_UNKNOWN_IDENTITY"] || :create).to_sym,
              require_ip_match: ENV["SQRL_IGNORE_IP"].nil?,
              # SQRL_ASK=1 poses an ask= (Allow / Deny) on every login; SQRL_SIN=1 sends a sin= challenge.

@@ -41,7 +41,13 @@ end
 # one (OmniAuth's request phase is a CSRF-protected POST), so every client of the login
 # URL - the agent, the conformance runner, the Site adapter - reaches the SQRL login block.
 class DescriptorTransport < SimpleDelegator
-  def initialize(descriptor, app, transport = SQRL::Client::Transport.new)
+  # The transport trusts the run's self-signed certificate and nothing else; plain http is
+  # never allowed, so the suite exercises exactly what a real client does with sqrl://.
+  def self.default_transport
+    SQRL::Client::Transport.new(allow_http: false, verify_tls: true, ca_file: ExampleApp.ca_file)
+  end
+
+  def initialize(descriptor, app, transport = self.class.default_transport)
     super(transport)
     @descriptor = descriptor
     @app = app
