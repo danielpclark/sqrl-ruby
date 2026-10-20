@@ -1,0 +1,10 @@
+<h1>Protected page</h1>
+<p>You are <code id="uid"><%= current_uid %></code>.</p>
+<% sqrl = session["sqrl"] || {} %>
+<ul>
+  <li>Account created on this login: <%= sqrl["created"] %></li>
+  <li>Completed via: <%= sqrl["via"] %></li>
+  <li>Logins: <%= sqrl["logins"] %></li>
+</ul>
+<p><a href="/">Home</a></p>
+<form method="post" action="/logout"><button>Log out</button></form>

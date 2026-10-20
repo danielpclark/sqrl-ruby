@@ -1,0 +1,13 @@
+<h1>OmniAuth SQRL demo</h1>
+<% if current_uid %>
+  <p id="state">Logged in as <code><%= current_uid %></code>
+     (logins this session: <%= session["login_count"] %>).</p>
+  <p><a href="/protected">Protected page</a></p>
+  <form method="post" action="/logout"><button>Log out</button></form>
+<% else %>
+  <p id="state">Not logged in.</p>
+  <form method="post" action="/auth/sqrl">
+    <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+    <button type="submit" id="sign-in">Sign in with SQRL</button>
+  </form>
+<% end %>

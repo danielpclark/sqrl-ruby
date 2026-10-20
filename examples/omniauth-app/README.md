@@ -1,0 +1,23 @@
+# examples/omniauth-app
+
+A Sinatra application that signs users in through OmniAuth's `:sqrl` provider
+(`gems/omniauth-sqrl`).
+
+```sh
+bundle install
+bin/dev            # http://localhost:9494/
+```
+
+Routes: `/` (home with a *Sign in with SQRL* button that POSTs to `/auth/sqrl`),
+`/auth/sqrl` (OmniAuth request phase: the SQRL login page), `/auth/sqrl/cli` (the SQRL
+endpoint), `/auth/sqrl/status` (poll), `/auth/sqrl/callback` (OmniAuth callback; the app
+stores the `uid`), `/auth/failure`, `/protected` (403 until logged in), `POST /logout`.
+
+OmniAuth 2 accepts only `POST` on `/auth/sqrl` and verifies an authenticity token; this
+app renders the token from Rack::Protection (enabled by Sinatra's sessions) into the login
+form, so the default protection stays on. Rails applications get the same from the
+`omniauth-rails_csrf_protection` gem.
+
+Environment: `SQRL_HOST` (public host placed in `sqrl://` URLs; defaults to the request
+host), `SESSION_SECRET`, `SQRL_UNKNOWN_IDENTITY` (`create`, `link` or `refuse`),
+`SQRL_IGNORE_IP`. Identities are kept in memory.
