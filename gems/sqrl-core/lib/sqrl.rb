@@ -19,6 +19,6 @@ module SQRL
   autoload :Ask, "sqrl/protocol"
   autoload :ServerResponse, "sqrl/protocol"
   autoload :Session, "sqrl/protocol/session"
-  autoload :Server, "sqrl/server"   # SQRL::Server::Redis needs an explicit require "sqrl/server/redis"
+  autoload :Server, "sqrl/server" # SQRL::Server::Redis needs an explicit require "sqrl/server/redis"
   autoload :TestVectors, "sqrl/test_vectors"
 end

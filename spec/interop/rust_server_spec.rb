@@ -60,11 +60,14 @@ module RustServer
   class Site < SQRL::Client::Conformance::Site
     def login_page(transport)
       response = transport.get(login_url)
-      raise SQRL::Client::TransportError.new("page answered #{response.status}", url: login_url) unless response.success?
+      unless response.success?
+        raise SQRL::Client::TransportError.new("page answered #{response.status}",
+                                               url: login_url)
+      end
 
       session = response.body[/session=([A-Za-z0-9_-]+)/, 1]
       found = SQRL::Client::Discovery.find(response.body, base_url: response.final_url)
-      Page.new(sqrl_url: found.sqrl_url, status_url: "#{login_url.chomp('/')}/status?session=#{session}",
+      Page.new(sqrl_url: found.sqrl_url, status_url: "#{login_url.chomp("/")}/status?session=#{session}",
                page_url: response.final_url, html: response.body)
     end
 

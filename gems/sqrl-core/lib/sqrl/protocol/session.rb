@@ -94,7 +94,7 @@ module SQRL
     end
 
     # Whether the identity has any previous identities to offer as +pidk+.
-    def has_previous? # rubocop:disable Naming/PredicateName
+    def has_previous?
       @identity.previous_count.positive?
     end
 
@@ -117,8 +117,8 @@ module SQRL
     # Record the user's answer to the server's +ask=+: 0 for the plain "OK" (shown when the
     # ask carries no buttons), 1 or 2 for the first or second button. Cancelling the ask
     # means not sending any further command at all, so there is no value for it.
-    def set_button(btn) # rubocop:disable Naming/AccessorMethodName
-      @pending_btn = [[btn.to_i, 0].max, 2].min
+    def set_button(btn)
+      @pending_btn = btn.to_i.clamp(0, 2)
       @answered_ask = true
     end
 
@@ -141,7 +141,7 @@ module SQRL
       raw = ask&.buttons&.[](index)&.url&.strip
       return nil if raw.nil? || raw.empty?
 
-      "#{@url.origin}/#{raw.sub(%r{\A/+}, '')}"
+      "#{@url.origin}/#{raw.sub(%r{\A/+}, "")}"
     end
 
     # Summary of the last response.
@@ -162,6 +162,7 @@ module SQRL
       if t.function_not_supported?
         return State.new(kind: :failed, message: "the server does not support that command")
       end
+
       if t.command_failed?
         if t.value == Tif::COMMAND_FAILED
           return State.new(kind: :failed,
@@ -328,7 +329,7 @@ module SQRL
       url = post_url
       server = server_param
 
-      client = +"ver=#{Protocol::VERSION}\r\n"
+      client = "ver=#{Protocol::VERSION}\r\n"
       client << "cmd=#{Command.to_wire(command)}\r\n"
       client << "idk=#{idk_b64}\r\n"
       pseed = nil
@@ -367,7 +368,7 @@ module SQRL
       msg = (client_b64 + server).b
 
       ids = Crypto.ed25519_sign(@identity.site_seed(@site_key), msg)
-      body = +"client=#{client_b64}&server=#{server}&ids=#{Util.b64u_encode(ids)}"
+      body = "client=#{client_b64}&server=#{server}&ids=#{Util.b64u_encode(ids)}"
       body << "&pids=#{Util.b64u_encode(Crypto.ed25519_sign(pseed, msg))}" if pseed
       body << "&urs=#{Util.b64u_encode(Crypto.ed25519_sign(urs_seed, msg))}" if urs_seed
 

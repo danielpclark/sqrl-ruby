@@ -46,7 +46,7 @@ RSpec.describe SQRL::Server::Redis do
       rescue LoadError
         skip "the redis gem is not installed"
       end
-      url = ENV["REDIS_URL"]
+      url = ENV.fetch("REDIS_URL", nil)
       if url.nil? && (bin = `which redis-server 2>/dev/null`.strip) && !bin.empty?
         port = TCPServer.new("127.0.0.1", 0).then { |s| s.addr[1].tap { s.close } }
         @server_pid = spawn(bin, "--port", port.to_s, "--save", "", "--appendonly", "no", "--bind", "127.0.0.1",
@@ -54,7 +54,7 @@ RSpec.describe SQRL::Server::Redis do
         url = "redis://127.0.0.1:#{port}/15"
         deadline = Time.now + 5
         begin
-          @client = ::Redis.new(url: url, timeout: 0.5)
+          @client = Redis.new(url: url, timeout: 0.5)
           @client.ping
         rescue StandardError
           @client = nil
@@ -62,7 +62,7 @@ RSpec.describe SQRL::Server::Redis do
         end
       elsif url
         begin
-          @client = ::Redis.new(url: url, timeout: 0.5)
+          @client = Redis.new(url: url, timeout: 0.5)
           @client.ping
         rescue StandardError
           @client = nil

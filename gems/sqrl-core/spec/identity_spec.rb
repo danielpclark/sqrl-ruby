@@ -10,7 +10,8 @@ RSpec.describe SQRL::Identity do
     expect(SQRL::Crypto.ed25519_verify(lock.vuk, "unlock me", sig)).to be(true)
 
     wrong = described_class.unlock_request_seed("\x2B" * 32, lock.suk)
-    expect(SQRL::Crypto.ed25519_verify(lock.vuk, "unlock me", SQRL::Crypto.ed25519_sign(wrong, "unlock me"))).to be(false)
+    expect(SQRL::Crypto.ed25519_verify(lock.vuk, "unlock me",
+                                       SQRL::Crypto.ed25519_sign(wrong, "unlock me"))).to be(false)
   end
 
   it "derives deterministic locks from a given RLK" do

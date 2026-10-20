@@ -35,7 +35,7 @@ module SQRL
     # SQRL.log transaction 1 and 2 (the query and ident against sqrl.grc.com).
     SPEC_URL = "sqrl://sqrl.grc.com/cli.sqrl?nut=fXkb4MBToCm7&can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vZGVtbw"
     SPEC_CANCEL_URL = "https://sqrl.grc.com/demo"
-    SPEC_QUERY_CLIENT = "ver=1\r\ncmd=query\r\nidk=#{SPEC_SITE_IDK}\r\nopt=cps~suk\r\n"
+    SPEC_QUERY_CLIENT = "ver=1\r\ncmd=query\r\nidk=#{SPEC_SITE_IDK}\r\nopt=cps~suk\r\n".freeze
     SPEC_QUERY_CLIENT_B64_PREFIX = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPTJqZ0ItY1ItRW5sWWdsUGRHVG9PdWNLWUk2Q0Q2c1VxZjRrOU10a3Vp"
     SPEC_QUERY_SERVER_B64_FRAGMENT = "&server=c3FybDovL3NxcmwuZ3JjLmNvbS9jbGkuc3FybD9udXQ9ZlhrYjRNQlRvQ203JmNhbj1hSFIwY0hNNkx5OXpj"
     SPEC_QUERY_IDS = "qXFikmg_jZQJ7GjKCA_zBwzras2QyQAwWw2s80ZcUHmLLBUN5_hPuFtB6ZoV5wUcNs5XmSrqg1FQwGA6RlVBAQ"
@@ -44,7 +44,7 @@ module SQRL
     SPEC_REPLY1_B64_PREFIX = "dmVyPTENCm51dD0xV005bGZGMVNULXoNCnRpZj01DQpxcnk9L2NsaS5zcXJsP251dD0xV005bGZGMVNULXoN"
     SPEC_REPLY1_SUK = "BMFDm7bPlsQojuJsoDTvlS1McnwgScvktF84vLjscGk"
     SPEC_IDENT_URL = "https://sqrl.grc.com/cli.sqrl?nut=1WM9lfF1ST-z"
-    SPEC_IDENT_CLIENT = "ver=1\r\ncmd=ident\r\nidk=#{SPEC_SITE_IDK}\r\nopt=cps~suk\r\n"
+    SPEC_IDENT_CLIENT = "ver=1\r\ncmd=ident\r\nidk=#{SPEC_SITE_IDK}\r\nopt=cps~suk\r\n".freeze
     SPEC_IDENT_CLIENT_B64_PREFIX = "client=dmVyPTENCmNtZD1pZGVudA0KaWRrPTJqZ0ItY1ItRW5sWWdsUGRHVG9PdWNLWUk2Q0Q2c1VxZjRrOU10a3Vp"
     SPEC_IDENT_IDS = "kQI05IpE_cu4u0mf7jymbap09hmS6ZCWjBGKUYnSNVRTXPbreTvDWHKNbSkUlQT2bx3wXwW3cCLBD0Qedd64AA"
     SPEC_REPLY2 = "ver=1\r\nnut=BEFAI1tJYfBm\r\ntif=5\r\nqry=/cli.sqrl?nut=BEFAI1tJYfBm\r\n" \

@@ -19,7 +19,8 @@ RSpec.describe SQRL::Client::Conformance do
 
     it "skips cases whose feature is off and runs only the requested ones" do
       site = start_site
-      runner = described_class.new(login_url: site.login_url, features: { remove: false }, only: %i[create_account remove_then_recreate])
+      runner = described_class.new(login_url: site.login_url, features: { remove: false },
+                                   only: %i[create_account remove_then_recreate])
       report = runner.run
       expect(report.cases.map(&:status)).to eq(%i[passed skipped])
       expect(report).to be_passed

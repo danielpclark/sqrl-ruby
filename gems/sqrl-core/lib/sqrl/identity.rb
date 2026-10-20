@@ -117,7 +117,7 @@ module SQRL
 
     # 16 hex characters identifying the identity without revealing key material.
     def fingerprint
-      Util.hex_encode(Crypto.sha256("sqrl-fingerprint" + @imk))[0, 16]
+      Util.hex_encode(Crypto.sha256("sqrl-fingerprint#{@imk}"))[0, 16]
     end
 
     def inspect

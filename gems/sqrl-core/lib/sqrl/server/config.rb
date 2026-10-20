@@ -101,14 +101,19 @@ module SQRL
         raise ArgumentError, "nut_ttl must be a positive number" unless positive_number?(@nut_ttl)
         raise ArgumentError, "cps_token_ttl must be a positive number" unless positive_number?(@cps_token_ttl)
         unless UNKNOWN_IDENTITY_POLICIES.include?(@on_unknown_identity)
-          raise ArgumentError, "on_unknown_identity must be one of #{UNKNOWN_IDENTITY_POLICIES.join(', ')}"
+          raise ArgumentError, "on_unknown_identity must be one of #{UNKNOWN_IDENTITY_POLICIES.join(", ")}"
         end
         raise ArgumentError, "ask must be an SQRL::Ask or a callable" unless valid_ask?
         raise ArgumentError, "sin must be a String or a callable" unless valid_sin?
-        raise ArgumentError, "on_authenticated must be callable" unless @on_authenticated.nil? || callable?(@on_authenticated)
+        unless @on_authenticated.nil? || callable?(@on_authenticated)
+          raise ArgumentError,
+                "on_authenticated must be callable"
+        end
         raise ArgumentError, "cps_url must be callable" unless @cps_url.nil? || callable?(@cps_url)
         raise ArgumentError, "clock must be callable" unless callable?(@clock)
-        unless @allowed_hosts.nil? || (@allowed_hosts.is_a?(Array) && @allowed_hosts.all? { |h| h.is_a?(String) || h.is_a?(Regexp) })
+        unless @allowed_hosts.nil? || (@allowed_hosts.is_a?(Array) && @allowed_hosts.all? do |h|
+          h.is_a?(String) || h.is_a?(Regexp)
+        end)
           raise ArgumentError, "allowed_hosts must be nil or an Array of Strings and Regexps"
         end
         unless @prune_every.nil? || (@prune_every.is_a?(Integer) && @prune_every.positive?)
@@ -171,7 +176,7 @@ module SQRL
       # Resolve the +sin+ setting for a request context.
       def sin_for(context)
         value = callable?(@sin) ? @sin.call(context) : @sin
-        value.nil? ? nil : value.to_s
+        value&.to_s
       end
 
       # Build the CPS +url=+ for a token.

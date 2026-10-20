@@ -32,7 +32,8 @@ module SQRL
           end
 
           found = Discovery.find(response.body, base_url: response.final_url)
-          Page.new(sqrl_url: found.sqrl_url, status_url: found.status_url, page_url: response.final_url, html: response.body)
+          Page.new(sqrl_url: found.sqrl_url, status_url: found.status_url, page_url: response.final_url,
+                   html: response.body)
         end
 
         # Whether +response+ (after following the CPS URL or the poll's +next+) shows a

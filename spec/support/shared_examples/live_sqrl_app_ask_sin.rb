@@ -17,7 +17,7 @@ RSpec.shared_examples "a live SQRL example app with ask and sin" do
     end
 
     ASK_SIN_CASES.each do |name|
-      it "#{SQRL::Client::Conformance::Runner::CASES.fetch(name).first}: #{name.to_s.tr('_', ' ')}" do
+      it "#{SQRL::Client::Conformance::Runner::CASES.fetch(name).first}: #{name.to_s.tr("_", " ")}" do
         kase = runner.run_case(name)
         skip(kase.message) if kase.skipped?
         raise kase.error || RSpec::Expectations::ExpectationNotMetError.new(kase.message) if kase.failed?
@@ -33,7 +33,10 @@ RSpec.shared_examples "a live SQRL example app with ask and sin" do
       expect_logged_in(first)
 
       asked = nil
-      second = login_via_site(new_agent(id, ask_handler: ->(ask) { asked = ask; 1 }))
+      second = login_via_site(new_agent(id, ask_handler: lambda { |ask|
+        asked = ask
+        1
+      }))
       expect(asked).not_to be_nil, "the site posed no ask= to the returning identity"
       expect(asked.message).to match(/Allow this login/)
       expect(asked.buttons.map(&:label)).to eq(%w[Allow Deny])
@@ -53,8 +56,6 @@ RSpec.shared_examples "a live SQRL example app with ask and sin" do
     end
 
     it "refuses the login when the ask is answered with Deny" do
-      pending "the protocol core accepts any btn= value; refusing a specific button needs an " \
-              "accept-list on the server's ask configuration (tracked for sqrl-core)"
       id = ephemeral
       login_via_site(new_agent(id, ask_handler: ->(_ask) { 1 }))
       expect { login_via_site(new_agent(id, ask_handler: ->(_ask) { 2 })) }.to raise_error(SQRL::Client::LoginFailed)

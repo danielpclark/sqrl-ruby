@@ -100,7 +100,10 @@ class TestSite
 
   def callback(req)
     login = @handler.claim_cps(req.GET["t"])
-    return [403, { "content-type" => "text/html" }, ["<h1>Invalid or expired login token</h1>"]] unless login&.authenticated?
+    unless login&.authenticated?
+      return [403, { "content-type" => "text/html" },
+              ["<h1>Invalid or expired login token</h1>"]]
+    end
 
     redirect(login.return_to || "/welcome", "user" => SQRL::Util.b64u_encode(login.authenticated_idk))
   end

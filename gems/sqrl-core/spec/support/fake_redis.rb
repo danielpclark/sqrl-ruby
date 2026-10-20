@@ -65,7 +65,7 @@ class FakeRedis
   def srem(key, *members) = sync { members.flatten.count { |m| set_of(key).delete?(m.to_s) } }
 
   def scan_each(match: "*", &block)
-    keys = sync { @data.keys.select { |k| live(k) && File.fnmatch(match, k, File::FNM_PATHNAME ^ File::FNM_PATHNAME) } }
+    keys = sync { @data.keys.select { |k| live(k) && File.fnmatch(match, k, 0) } }
     keys.each(&block)
   end
 
@@ -113,7 +113,7 @@ class FakeRedis
 
   private
 
-  def sync(&block) = @mutex.synchronize(&block)
+  def sync(&) = @mutex.synchronize(&)
   def now_ms = (Process.clock_gettime(Process::CLOCK_REALTIME) * 1000).to_i
 
   def ttl_deadline(ex:, px:)

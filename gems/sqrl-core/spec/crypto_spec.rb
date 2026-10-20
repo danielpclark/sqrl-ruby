@@ -25,7 +25,8 @@ RSpec.describe SQRL::Crypto do
     end
 
     it "treats an iteration count below one as one" do
-      expect(described_class.enscrypt_iterations("pw", "salt", 9, 0)).to eq(described_class.enscrypt_iterations("pw", "salt", 9, 1))
+      expect(described_class.enscrypt_iterations("pw", "salt", 9,
+                                                 0)).to eq(described_class.enscrypt_iterations("pw", "salt", 9, 1))
     end
   end
 

@@ -113,11 +113,11 @@ module SQRL
         module_function
 
         def time_out(time) = time.nil? ? nil : format("%.6f", time.to_f)
-        def time_in(str) = (str.nil? || str.empty?) ? nil : Time.at(Float(str))
+        def time_in(str) = str.nil? || str.empty? ? nil : Time.at(Float(str))
         def bool_out(value) = value ? "1" : "0"
         def bool_in(str) = str == "1"
         def bin_out(bytes) = bytes.nil? ? nil : Util.b64u_encode(bytes)
-        def bin_in(str) = (str.nil? || str.empty?) ? nil : Util.b64u_decode(str)
+        def bin_in(str) = str.nil? || str.empty? ? nil : Util.b64u_decode(str)
 
         # Milliseconds until +time+, at least 1 (Redis rejects non-positive TTLs).
         def ttl_ms(time, default_seconds)
@@ -145,8 +145,8 @@ module SQRL
 
         def key(kind, id) = "#{@ns}:#{kind}:#{id}"
 
-        def each_key(kind, &block)
-          @redis.scan_each(match: "#{@ns}:#{kind}:*", &block)
+        def each_key(kind, &)
+          @redis.scan_each(match: "#{@ns}:#{kind}:*", &)
         end
       end
 
@@ -213,7 +213,7 @@ module SQRL
 
         def create(**attrs)
           identity = Identity.new(**attrs)
-          fields = encode(identity.to_h).reject { |_, v| v.nil? }.flatten
+          fields = encode(identity.to_h).compact.flatten
           created = @redis.eval(Scripts::CREATE_IDENTITY, keys: [key(:id, identity.idk_b64)], argv: fields)
           raise ArgumentError, "identity already exists" unless created.to_i == 1
 
@@ -226,7 +226,7 @@ module SQRL
 
           encoded = encode(attrs)
           removals = encoded.select { |_, v| v.nil? }.keys
-          writes = encoded.reject { |_, v| v.nil? }
+          writes = encoded.compact
           @redis.hdel(k, *removals) unless removals.empty?
           @redis.hset(k, writes) unless writes.empty?
           find(idk)
@@ -293,7 +293,7 @@ module SQRL
                                    link_user_ref: link_user_ref, created_at: created_at)
           k = key(:pl, id)
           @redis.del(k)
-          @redis.hset(k, encode(login.to_h.reject { |f, _| f == :id }).compact)
+          @redis.hset(k, encode(login.to_h.except(:id)).compact)
           @redis.pexpire(k, Codec.ttl_ms(expires_at, @default_ttl))
           login.dup
         end
@@ -311,7 +311,7 @@ module SQRL
           reindex_token(id, k, attrs) if attrs.key?(:cps_token)
           encoded = encode(attrs)
           removals = encoded.select { |_, v| v.nil? }.keys
-          writes = encoded.reject { |_, v| v.nil? }
+          writes = encoded.compact
           @redis.hdel(k, *removals) unless removals.empty?
           @redis.hset(k, writes) unless writes.empty?
           @redis.pexpire(k, Codec.ttl_ms(attrs[:expires_at], @default_ttl)) if attrs.key?(:expires_at)
@@ -349,7 +349,12 @@ module SQRL
           new = attrs[:cps_token]
           return if new.nil? || new.empty?
 
-          expires_at = attrs.key?(:cps_token_expires_at) ? attrs[:cps_token_expires_at] : Codec.time_in(@redis.hget(k, "cps_token_expires_at"))
+          expires_at = if attrs.key?(:cps_token_expires_at)
+                         attrs[:cps_token_expires_at]
+                       else
+                         Codec.time_in(@redis.hget(k,
+                                                   "cps_token_expires_at"))
+                       end
           # The index outlives the token's own expiry by a minute so that a late claim still
           # finds the login and clears the stale token (the expiry itself is enforced by
           # value in claim_cps_token).

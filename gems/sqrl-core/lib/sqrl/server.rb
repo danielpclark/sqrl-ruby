@@ -40,7 +40,7 @@ module SQRL
       def idk_b64 = idk && Util.b64u_encode(idk)
 
       def inspect
-        "#<SQRL::Server::Result #{command || '?'} tif=0x#{tif.to_hex} authenticated=#{authenticated?}>"
+        "#<SQRL::Server::Result #{command || "?"} tif=0x#{tif.to_hex} authenticated=#{authenticated?}>"
       end
     end
 
@@ -76,7 +76,7 @@ module SQRL
         @config.before_issue&.call({ ip: ip.to_s, pending_login_id: pending_login_id, config: @config })
         count_request
         nut = new_nut
-        url = +"#{@config.scheme}://#{@config.host}#{@config.path}?"
+        url = "#{@config.scheme}://#{@config.host}#{@config.path}?"
         url << "x=#{@config.path_extension}&" if @config.path_extension
         url << "nut=#{nut}"
         url << "&can=#{Util.b64u_encode(cancel_url.b)}" if cancel_url
@@ -94,7 +94,8 @@ module SQRL
         login = pending_login_id && @stores.pending_logins.find(pending_login_id)
         return { authenticated: false, idk: nil } if login.nil? || login.expired?(@config.now)
 
-        { authenticated: login.authenticated?, idk: login.authenticated_idk && Util.b64u_encode(login.authenticated_idk) }
+        { authenticated: login.authenticated?,
+          idk: login.authenticated_idk && Util.b64u_encode(login.authenticated_idk) }
       end
 
       # Claim a one-time CPS token from the callback URL.
@@ -202,7 +203,8 @@ module SQRL
           server_b64 = get.call("server")
           ids_b64 = get.call("ids")
           return fail_with(Tif::CLIENT_FAILURE | Tif::COMMAND_FAILED) unless client_b64 && server_b64 && ids_b64
-          return fail_with(Tif::CLIENT_FAILURE | Tif::COMMAND_FAILED) unless Util.secure_compare(server_b64, record.expected_server)
+          return fail_with(Tif::CLIENT_FAILURE | Tif::COMMAND_FAILED) unless Util.secure_compare(server_b64,
+                                                                                                 record.expected_server)
 
           client_text = decode_client(client_b64)
           return fail_with(Tif::CLIENT_FAILURE | Tif::COMMAND_FAILED) unless client_text
@@ -313,7 +315,9 @@ module SQRL
                 attrs = { sqrlonly: opts.sqrlonly?, hardlock: opts.hardlock? }
                 if @sin
                   ins = cget.call("ins")
-                  return fail_with(Tif::COMMAND_FAILED) unless ins && (current.ins.nil? || Util.secure_compare(current.ins, ins))
+                  return fail_with(Tif::COMMAND_FAILED) unless ins && (current.ins.nil? || Util.secure_compare(
+                    current.ins, ins
+                  ))
 
                   attrs[:ins] = ins
                 end
@@ -416,7 +420,7 @@ module SQRL
           @result.identity = identity
           @result.authenticated = true
           @login = @stores.pending_logins.update(@login_id, authenticated_idk: identity.idk, authenticated_at: @now,
-                                                            ip_matched: (@tif & Tif::IPS_MATCHED) != 0)
+                                                            ip_matched: @tif.anybits?(Tif::IPS_MATCHED))
           issue_cps_url if opts.cps?
           @config.on_authenticated&.call(identity, @login, cmd)
         end
@@ -450,7 +454,7 @@ module SQRL
 
         def respond
           nut = @handler.new_nut
-          text = +"ver=#{Protocol::VERSION}\r\nnut=#{nut}\r\ntif=#{Tif.new(@tif).to_hex}\r\nqry=#{@config.path}?nut=#{nut}\r\n"
+          text = "ver=#{Protocol::VERSION}\r\nnut=#{nut}\r\ntif=#{Tif.new(@tif).to_hex}\r\nqry=#{@config.path}?nut=#{nut}\r\n"
           text << "sin=#{@sin}\r\n" if @sin
           @extra.each { |k, v| text << "#{k}=#{v}\r\n" }
           body = Util.b64u_encode(text.b)
@@ -467,7 +471,7 @@ module SQRL
           logger = @config.logger
           return unless logger.respond_to?(:debug)
 
-          logger.debug("[sqrl] #{@result.command || 'invalid'} tif=0x#{@result.tif.to_hex} " \
+          logger.debug("[sqrl] #{@result.command || "invalid"} tif=0x#{@result.tif.to_hex} " \
                        "login=#{@login_id} authenticated=#{@result.authenticated?}")
         end
       end

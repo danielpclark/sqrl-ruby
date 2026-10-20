@@ -31,7 +31,7 @@ class RodaApp < Roda
          after_login: "/protected",
          on_unknown_identity: (ENV["SQRL_UNKNOWN_IDENTITY"] || :create).to_sym,
          require_ip_match: ENV["SQRL_IGNORE_IP"].nil?,
-         ask: (ENV["SQRL_ASK"] ? SQRL::Ask.new(message: "Allow this login?", buttons: [{ label: "Allow" }, { label: "Deny" }]) : nil),
+         ask: (ENV["SQRL_ASK"] ? SQRL::Ask.new(message: "Allow this login?", buttons: [{ label: "Allow" }, { label: "Deny" }], accept: [1]) : nil),
          sin: (ENV["SQRL_SIN"] ? "0" : nil)
 
   route do |r|

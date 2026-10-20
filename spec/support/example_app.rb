@@ -141,7 +141,7 @@ class ExampleApp
   end
 
   def running?
-    @wait && @wait.alive?
+    @wait&.alive?
   end
 
   private
@@ -163,7 +163,7 @@ class ExampleApp
           http.get(@definition.ready_path)
         end
         return if response.code.to_i < 500
-      rescue SystemCallError, Net::OpenTimeout, Net::ReadTimeout, EOFError, IOError
+      rescue SystemCallError, Net::OpenTimeout, Net::ReadTimeout, IOError
         nil
       end
       raise "#{@name} did not become ready on port #{@port} within #{@boot_timeout}s:\n#{@log}" if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline

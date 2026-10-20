@@ -149,7 +149,7 @@ module SQRL
         path.is_a?(String) && path.match?(%r{\A/(?![/\\])}) && !path.match?(/[\x00-\x20\x7f\\]/)
       end
 
-      def failure(request)
+      def failure(_request)
         if options[:failure_path]
           redirect(options[:failure_path])
         else

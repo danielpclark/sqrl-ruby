@@ -95,8 +95,10 @@ RSpec.shared_examples "a live SQRL example app" do
     end
 
     def expect_browser_logged_in
-      expect(page).to have_current_path(/\A(?!.*(login|sign_in|session\/new|auth\/sqrl)).*/, wait: 10)
-      expect(descriptor.logged_in.call(page.html)).to be(true), "browser did not land on a logged-in page: #{page.current_url}\n#{page.html[0, 400]}"
+      expect(page).to have_current_path(%r{\A(?!.*(login|sign_in|session/new|auth/sqrl)).*}, wait: 10)
+      expect(descriptor.logged_in.call(page.html)).to be(true),
+                                                      "browser did not land on a logged-in page: #{page.current_url}\n#{page.html[0,
+                                                                                                                                  400]}"
     end
 
     it "renders the login block, initialises sqrl.js and keeps the direct link when no local client answers" do

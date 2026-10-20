@@ -55,9 +55,9 @@ RSpec.describe SQRL::URL do
   end
 
   it "decodes the cancel URL" do
-    u = described_class.parse("sqrl://example.com/cli.sqrl?nut=1&can=#{b64('https://example.com/cancelled')}")
+    u = described_class.parse("sqrl://example.com/cli.sqrl?nut=1&can=#{b64("https://example.com/cancelled")}")
     expect(u.cancel_url).to eq("https://example.com/cancelled")
-    u = described_class.parse("sqrl://example.com/cli.sqrl?nut=1&can=#{b64('/login?cancel=1')}")
+    u = described_class.parse("sqrl://example.com/cli.sqrl?nut=1&can=#{b64("/login?cancel=1")}")
     expect(u.cancel_url).to eq("https://example.com/login?cancel=1")
     expect { described_class.parse("sqrl://example.com/cli.sqrl?nut=1&can=%%%") }.to raise_error(SQRL::FormatError)
   end
@@ -111,7 +111,8 @@ RSpec.describe SQRL::URL do
 
   describe ".query_pairs" do
     it "splits and percent-decodes values" do
-      expect(described_class.query_pairs("nut=a%2Fb&x=5&flag&=v")).to eq([%w[nut a/b], %w[x 5], ["flag", ""], ["", "v"]])
+      expect(described_class.query_pairs("nut=a%2Fb&x=5&flag&=v")).to eq([%w[nut a/b], %w[x 5], ["flag", ""],
+                                                                          ["", "v"]])
       expect(described_class.query_pairs("")).to eq([])
       expect(described_class.query_pairs("a=%zz")).to eq([["a", "%zz"]])
     end

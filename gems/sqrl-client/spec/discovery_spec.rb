@@ -5,8 +5,8 @@ RSpec.describe SQRL::Client::Discovery do
 
   it "prefers the data-sqrl-url attribute and resolves the status URL" do
     html = <<~HTML
-      <div data-sqrl-login data-sqrl-url="#{url.sub('&', '&amp;')}" data-sqrl-status="/sqrl/status">
-        <a data-sqrl-link href="#{url.sub('&', '&amp;')}">Sign in</a>
+      <div data-sqrl-login data-sqrl-url="#{url.sub("&", "&amp;")}" data-sqrl-status="/sqrl/status">
+        <a data-sqrl-link href="#{url.sub("&", "&amp;")}">Sign in</a>
       </div>
     HTML
     r = described_class.find(html, base_url: "https://example.com/login")
@@ -29,7 +29,7 @@ RSpec.describe SQRL::Client::Discovery do
     html = %(<a href="qrl://example.com/not-loopback?nut=1">bad</a><a href="http://localhost:25519/%%%">bad</a><a href="#{url}">ok</a>)
     expect(described_class.find(html).sqrl_url).to eq(url)
     expect { described_class.find("<html><body>nothing here</body></html>", base_url: "https://x/login") }
-      .to raise_error(SQRL::Client::DiscoveryError, /no sqrl:\/\/ login link found on https:\/\/x\/login/)
+      .to raise_error(SQRL::Client::DiscoveryError, %r{no sqrl:// login link found on https://x/login})
   end
 
   it "accepts a target that is itself a link" do

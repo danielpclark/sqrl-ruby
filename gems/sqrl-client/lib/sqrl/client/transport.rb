@@ -87,7 +87,7 @@ module SQRL
           lines << [domain, c.for_domain? ? "TRUE" : "FALSE", c.path, c.secure? ? "TRUE" : "FALSE",
                     expires, c.name, c.value].join("\t")
         end
-        lines.join("\n") + "\n"
+        "#{lines.join("\n")}\n"
       end
 
       # Cookies as an Array of Hashes (serialisable to JSON).
@@ -113,7 +113,7 @@ module SQRL
           raise TransportError.new("too many redirects", url: url) if redirects >= @max_redirects
 
           target = uri.merge(res["location"]).to_s
-          next_method = status == 307 || status == 308 ? method : :get
+          next_method = [307, 308].include?(status) ? method : :get
           next_body = next_method == :get ? nil : body
           next_headers = next_method == :get ? headers.reject { |k, _| k.to_s.casecmp?("content-type") } : headers
           return request(next_method, target, next_body, next_headers, follow_redirects: true,
@@ -130,7 +130,10 @@ module SQRL
         when "https" then nil
         when "http"
           allowed = @allow_http == true || (@allow_http == :loopback && URL.loopback?(uri.host.to_s.downcase))
-          raise TransportError.new("plain http is not allowed for #{uri.host} (allow_http: #{@allow_http.inspect})", url: uri.to_s) unless allowed
+          unless allowed
+            raise TransportError.new("plain http is not allowed for #{uri.host} (allow_http: #{@allow_http.inspect})",
+                                     url: uri.to_s)
+          end
         else
           raise TransportError.new("unsupported URL scheme #{uri.scheme.inspect}", url: uri.to_s)
         end

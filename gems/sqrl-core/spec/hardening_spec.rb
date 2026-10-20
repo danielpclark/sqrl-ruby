@@ -18,11 +18,15 @@ RSpec.describe "server hardening options" do
     it "allows qrl only for loopback hosts, including bracketed IPv6 loopback" do
       expect(described_class.new(host: "[::1]:9000", scheme: "qrl").origin).to eq("http://[::1]:9000")
       expect(described_class.new(host: "127.0.0.1:9000", scheme: "qrl").bare_host).to eq("127.0.0.1")
-      expect { described_class.new(host: "[2001:db8::1]:9000", scheme: "qrl") }.to raise_error(ArgumentError, /loopback/)
+      expect do
+        described_class.new(host: "[2001:db8::1]:9000", scheme: "qrl")
+      end.to raise_error(ArgumentError, /loopback/)
     end
 
     it "validates allowed_hosts, prune_every and the hooks" do
-      expect { described_class.new(host: "e.com", allowed_hosts: "e.com") }.to raise_error(ArgumentError, /allowed_hosts/)
+      expect do
+        described_class.new(host: "e.com", allowed_hosts: "e.com")
+      end.to raise_error(ArgumentError, /allowed_hosts/)
       expect { described_class.new(host: "e.com", allowed_hosts: [1]) }.to raise_error(ArgumentError, /allowed_hosts/)
       expect { described_class.new(host: "e.com", prune_every: 0) }.to raise_error(ArgumentError, /prune_every/)
       expect { described_class.new(host: "e.com", before_issue: 1) }.to raise_error(ArgumentError, /before_issue/)
@@ -33,7 +37,9 @@ RSpec.describe "server hardening options" do
     end
 
     it "matches allowed_hosts by exact string (with or without port) or regexp" do
-      c = described_class.new(host: "e.com", allowed_hosts: ["Example.com", "app.example.com:8443", /\A[a-z]+\.tenants\.example\z/])
+      c = described_class.new(host: "e.com",
+                              allowed_hosts: ["Example.com", "app.example.com:8443",
+                                              /\A[a-z]+\.tenants\.example\z/])
       expect(c.host_allowed?("example.com")).to be(true)
       expect(c.host_allowed?("EXAMPLE.com:443")).to be(true)
       expect(c.host_allowed?("app.example.com:8443")).to be(true)

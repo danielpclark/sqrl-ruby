@@ -85,7 +85,7 @@ module SQRL
       # @param bound_idk [String, nil] identity the transaction is bound to (raw bytes)
       # @param expires_at [Time, nil]
       # @return [NutRecord]
-      def issue(nut:, pending_login_id:, expected_server:, ip:, bound_idk:, expires_at:) # rubocop:disable Lint/UnusedMethodArgument
+      def issue(nut:, pending_login_id:, expected_server:, ip:, bound_idk:, expires_at:)
         raise NotImplementedError
       end
 
@@ -93,12 +93,12 @@ module SQRL
       # already used or expired.
       #
       # @return [NutRecord, nil]
-      def consume(nut, now: Time.now) # rubocop:disable Lint/UnusedMethodArgument
+      def consume(nut, now: Time.now)
         raise NotImplementedError
       end
 
       # Delete expired and used nuts.
-      def prune!(now = Time.now) # rubocop:disable Lint/UnusedMethodArgument
+      def prune!(now = Time.now)
         raise NotImplementedError
       end
     end
@@ -106,20 +106,20 @@ module SQRL
     # Interface for identity (SQRL association) storage, keyed by raw +idk+ bytes.
     class IdentityStore
       # @return [Identity, nil]
-      def find(idk) # rubocop:disable Lint/UnusedMethodArgument
+      def find(idk)
         raise NotImplementedError
       end
 
       # @param attrs [Hash] keyword attributes of {Identity}
       # @return [Identity]
-      def create(**attrs) # rubocop:disable Lint/UnusedMethodArgument
+      def create(**attrs)
         raise NotImplementedError
       end
 
       # Merge +attrs+ into the stored identity.
       #
       # @return [Identity, nil]
-      def update(idk, **attrs) # rubocop:disable Lint/UnusedMethodArgument
+      def update(idk, **attrs)
         raise NotImplementedError
       end
 
@@ -127,17 +127,17 @@ module SQRL
       # mark +old_idk+ superseded.
       #
       # @return [Identity, nil] the re-keyed identity, or nil when +old_idk+ is unknown
-      def rekey(old_idk, new_idk, suk:, vuk:, ins:) # rubocop:disable Lint/UnusedMethodArgument
+      def rekey(old_idk, new_idk, suk:, vuk:, ins:)
         raise NotImplementedError
       end
 
       # Whether +idk+ was superseded by a re-key.
-      def superseded?(idk) # rubocop:disable Lint/UnusedMethodArgument
+      def superseded?(idk)
         raise NotImplementedError
       end
 
       # Delete the association. Returns the removed identity or nil.
-      def remove(idk) # rubocop:disable Lint/UnusedMethodArgument
+      def remove(idk)
         raise NotImplementedError
       end
     end
@@ -146,19 +146,19 @@ module SQRL
     # session. +claim_cps_token+ must be atomic.
     class PendingLoginStore
       # @return [PendingLogin]
-      def create(id, ip:, return_to:, expires_at:, link_user_ref: nil, created_at: Time.now) # rubocop:disable Lint/UnusedMethodArgument
+      def create(id, ip:, return_to:, expires_at:, link_user_ref: nil, created_at: Time.now)
         raise NotImplementedError
       end
 
       # @return [PendingLogin, nil]
-      def find(id) # rubocop:disable Lint/UnusedMethodArgument
+      def find(id)
         raise NotImplementedError
       end
 
       # Merge +attrs+ into the pending login.
       #
       # @return [PendingLogin, nil]
-      def update(id, **attrs) # rubocop:disable Lint/UnusedMethodArgument
+      def update(id, **attrs)
         raise NotImplementedError
       end
 
@@ -166,12 +166,12 @@ module SQRL
       # when the token is unknown, already claimed or expired.
       #
       # @return [PendingLogin, nil]
-      def claim_cps_token(token, now: Time.now) # rubocop:disable Lint/UnusedMethodArgument
+      def claim_cps_token(token, now: Time.now)
         raise NotImplementedError
       end
 
       # Delete expired pending logins.
-      def prune!(now = Time.now) # rubocop:disable Lint/UnusedMethodArgument
+      def prune!(now = Time.now)
         raise NotImplementedError
       end
     end

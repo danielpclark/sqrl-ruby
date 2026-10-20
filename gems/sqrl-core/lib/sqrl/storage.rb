@@ -172,9 +172,9 @@ module SQRL
 
       # Derive the AES key from the password (slow: runs EnScrypt for +iterations+). The
       # block, if given, receives the number of completed iterations.
-      def derive_key(password, &progress)
+      def derive_key(password, &)
         pw = Storage.normalize_password(password)
-        key = Crypto.enscrypt_iterations(pw, @salt, @settings.log_n, @iterations, &progress)
+        key = Crypto.enscrypt_iterations(pw, @salt, @settings.log_n, @iterations, &)
         Util.wipe(pw)
         key
       end
@@ -253,9 +253,9 @@ module SQRL
       end
 
       # Decrypt the IUK with the rescue code (slow: runs EnScrypt for +iterations+).
-      def decrypt(rescue_code, &progress)
+      def decrypt(rescue_code, &)
         digits = Storage.normalize_rescue_code(rescue_code)
-        key = Crypto.enscrypt_iterations(digits, @salt, @log_n, @iterations, &progress)
+        key = Crypto.enscrypt_iterations(digits, @salt, @log_n, @iterations, &)
         begin
           Crypto.aes_gcm_decrypt(key, ZERO_IV, plaintext, @enc_iuk + @tag)
         rescue CryptoError
@@ -513,10 +513,10 @@ module SQRL
 
     # Derive the password key (slow). The block receives completed EnScrypt iterations out
     # of +type1.iterations+.
-    def derive_password_key(password, &progress)
+    def derive_password_key(password, &)
       raise FormatError, "identity has no password block" unless @type1
 
-      @type1.derive_key(password, &progress)
+      @type1.derive_key(password, &)
     end
 
     # Unlock the identity with an already-derived password key.
@@ -529,18 +529,18 @@ module SQRL
     end
 
     # Unlock the identity with the password (slow).
-    def unlock(password, &progress)
-      key = derive_password_key(password, &progress)
+    def unlock(password, &)
+      key = derive_password_key(password, &)
       unlock_with_key(key)
     ensure
       Util.wipe(key) if key
     end
 
     # Decrypt the IUK with the rescue code (slow).
-    def unlock_iuk(rescue_code, &progress)
+    def unlock_iuk(rescue_code, &)
       raise FormatError, "identity has no rescue code block" unless @type2
 
-      @type2.decrypt(rescue_code, &progress)
+      @type2.decrypt(rescue_code, &)
     end
 
     # Create a complete new identity file from an IUK.

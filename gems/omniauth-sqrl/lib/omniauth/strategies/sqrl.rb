@@ -181,7 +181,7 @@ module OmniAuth
         headers = { "content-type" => "text/html; charset=utf-8", "cache-control" => "no-store" }
         headers["retry-after"] = e.retry_after.to_i.to_s if e.retry_after
         [429, headers, [%(<!doctype html><title>#{CGI.escapeHTML(options.title.to_s)}</title>) +
-                        ::SQRL::Rack::LoginBlock.unavailable(message: e.message)]]
+          ::SQRL::Rack::LoginBlock.unavailable(message: e.message)]]
       rescue ::SQRL::Rack::HostNotAllowed => e
         [400, { "content-type" => "text/plain; charset=utf-8", "cache-control" => "no-store" }, ["#{e.message}\n"]]
       end
@@ -266,9 +266,9 @@ module OmniAuth
           key = options.to_hash.reject { |k, _| k.to_s == "stores" }.merge("stores" => options.stores.object_id)
           @facts_mutex.synchronize do
             @host_resolvers[key] ||= ::SQRL::Rack::HostResolver.new(host: options.host, scheme: options.scheme,
-                                                                      allowed_hosts: options.allowed_hosts,
-                                                                      limit: options.host_cache_limit,
-                                                                      logger: options.logger || OmniAuth.logger)
+                                                                    allowed_hosts: options.allowed_hosts,
+                                                                    limit: options.host_cache_limit,
+                                                                    logger: options.logger || OmniAuth.logger)
           end
         end
 
@@ -312,7 +312,9 @@ module OmniAuth
 
         hostport = uri.port && uri.port != uri.default_port ? "#{uri.host}:#{uri.port}" : uri.host
         request_host = request.host_with_port
-        [request.host, request_host, handler.config.host].compact.any? { |h| h.casecmp?(hostport) || h.casecmp?(uri.host) }
+        [request.host, request_host, handler.config.host].compact.any? do |h|
+          h.casecmp?(hostport) || h.casecmp?(uri.host)
+        end
       rescue URI::InvalidURIError
         false
       end

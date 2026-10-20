@@ -14,7 +14,7 @@ RSpec.describe SQRL::Session do
     expect(req.client_text).to start_with("ver=1\r\ncmd=query\r\nidk=")
     expect(req.client_text).to include("opt=suk\r\n")
     expect(req.client_text).not_to include("pidk=")
-    expect(req.body).to include("&server=#{b64('sqrl://example.com/cli.sqrl?nut=n1')}&ids=")
+    expect(req.body).to include("&server=#{b64("sqrl://example.com/cli.sqrl?nut=n1")}&ids=")
     expect(req.body).not_to include("&pids=")
     expect(req.command).to eq(:query)
     expect(s.last_command).to eq(:query)
@@ -186,7 +186,7 @@ RSpec.describe SQRL::Session do
     expect(i.client_text).to include("pidk=", "suk=#{b64(lock.suk)}", "vuk=#{b64(lock.vuk)}")
     expect(i.body).to include("&pids=", "&urs=")
     urs = SQRL::Util.b64u_decode(i.body[/&urs=([^&]+)/, 1])
-    msg = i.body.scan(/(?:client|server)=([^&]+)/).flatten.join
+    msg = i.body.scan(/(?:client|server)=([^&]+)/).join
     # the urs verifies under the VUK that the old identity gave the server
     old_vuk = SQRL::Crypto.ed25519_public(SQRL::Crypto.x25519(old_iuk, suk))
     expect(SQRL::Crypto.ed25519_verify(old_vuk, msg, urs)).to be(true)
@@ -220,8 +220,8 @@ RSpec.describe SQRL::Session do
     pins = q.client_text[/pins=([^\r]+)/, 1]
     expect(ins).to eq(b64(SQRL::Identity.indexed_secret(id.site_seed("example.com"), "0")))
     expect(pins).to eq(b64(SQRL::Identity.indexed_secret(
-                            SQRL::UnlockedIdentity.from_iuk(old_iuk).site_seed("example.com"), "0"
-                          )))
+                             SQRL::UnlockedIdentity.from_iuk(old_iuk).site_seed("example.com"), "0"
+                           )))
     i = s.ident
     expect(i.client_text).to include("ins=")
     expect(i.client_text).not_to include("pins=")

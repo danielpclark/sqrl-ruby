@@ -55,7 +55,7 @@ module SQRL
 
           return Result.new(sqrl_url: url, status_url: status, source: source, page_url: base_url)
         end
-        raise DiscoveryError, "no sqrl:// login link found#{base_url ? " on #{base_url}" : ''}"
+        raise DiscoveryError, "no sqrl:// login link found#{" on #{base_url}" if base_url}"
       end
 
       # Turn a target string that is itself a login link into a Result: a +sqrl://+ /

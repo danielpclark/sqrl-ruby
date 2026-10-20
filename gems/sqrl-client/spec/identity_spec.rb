@@ -34,7 +34,8 @@ RSpec.describe SQRL::Client::Identity do
     it "creates an S4 identity file, reloads it and recovers the IUK with the rescue code" do
       Dir.mktmpdir do |dir|
         path = File.join(dir, "bot.sqrl")
-        created = described_class.create(password: "hunter2", path: path, pw_seconds: 1, rescue_seconds: 0.001, now_ms: clock)
+        created = described_class.create(password: "hunter2", path: path, pw_seconds: 1, rescue_seconds: 0.001,
+                                         now_ms: clock)
         expect(created.rescue_code).to match(/\A\d{4}(-\d{4}){5}\z/)
         expect(File.binread(path)).to start_with("sqrldata")
         expect(created).to be_iuk
@@ -50,11 +51,13 @@ RSpec.describe SQRL::Client::Identity do
 
         # textual export → rescue-only import → same identity, with a new password block
         textual = SQRL::Textual.format_for_display(SQRL::Textual.encode(created.s4.rescue_blocks_to_bytes))
-        imported = described_class.from_textual(textual, rescue_code: created.rescue_code, password: "new pw", now_ms: clock)
+        imported = described_class.from_textual(textual, rescue_code: created.rescue_code, password: "new pw",
+                                                         now_ms: clock)
         expect(imported.fingerprint).to eq(created.fingerprint)
         expect(imported.iuk).to eq(created.iuk)
         expect(imported.s4).to be_password_block
-        expect(described_class.from_s4(SQRL::S4Identity.parse(imported.export), password: "new pw").fingerprint).to eq(created.fingerprint)
+        expect(described_class.from_s4(SQRL::S4Identity.parse(imported.export),
+                                       password: "new pw").fingerprint).to eq(created.fingerprint)
 
         # re-key a file-backed identity
         rekeyed = loaded.rekey!(password: "hunter3", now_ms: clock, rescue_seconds: 0.001)
@@ -87,7 +90,8 @@ RSpec.describe SQRL::Client::Identity do
     it "loads a file with the password from a file" do
       Dir.mktmpdir do |dir|
         path = File.join(dir, "bot.sqrl")
-        created = described_class.create(password: "s3cret", path: path, pw_seconds: 1, rescue_seconds: 0.001, now_ms: clock)
+        created = described_class.create(password: "s3cret", path: path, pw_seconds: 1, rescue_seconds: 0.001,
+                                         now_ms: clock)
         pw_file = File.join(dir, "pw")
         File.write(pw_file, "s3cret\n")
         id = described_class.from_env({ "SQRL_IDENTITY_FILE" => path, "SQRL_PASSWORD_FILE" => pw_file })

@@ -21,7 +21,7 @@ RSpec.shared_examples "a SQRL server" do
   end
 
   SQRL::Client::Conformance::Runner::CASES.each do |name, (group, _feature)|
-    it "#{group}: #{name.to_s.tr('_', ' ')}" do
+    it "#{group}: #{name.to_s.tr("_", " ")}" do
       kase = conformance_runner.run_case(name)
       skip(kase.message) if kase.skipped?
       raise kase.error || RSpec::Expectations::ExpectationNotMetError.new(kase.message) if kase.failed?

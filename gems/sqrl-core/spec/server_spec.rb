@@ -31,13 +31,22 @@ RSpec.describe SQRL::Server do
       expect { described_class.new(host: "example.com", scheme: "http") }.to raise_error(ArgumentError, /scheme/)
       expect { described_class.new(host: "example.com", scheme: "qrl") }.to raise_error(ArgumentError, /loopback/)
       expect(described_class.new(host: "localhost:8080", scheme: "qrl").origin).to eq("http://localhost:8080")
-      expect { described_class.new(host: "example.com", path_extension: 0) }.to raise_error(ArgumentError, /path_extension/)
+      expect do
+        described_class.new(host: "example.com", path_extension: 0)
+      end.to raise_error(ArgumentError, /path_extension/)
       expect { described_class.new(host: "example.com", nut_ttl: 0) }.to raise_error(ArgumentError, /nut_ttl/)
-      expect { described_class.new(host: "example.com", cps_token_ttl: -1) }.to raise_error(ArgumentError, /cps_token_ttl/)
-      expect { described_class.new(host: "example.com", on_unknown_identity: :maybe) }.to raise_error(ArgumentError, /on_unknown_identity/)
+      expect do
+        described_class.new(host: "example.com", cps_token_ttl: -1)
+      end.to raise_error(ArgumentError, /cps_token_ttl/)
+      expect do
+        described_class.new(host: "example.com",
+                            on_unknown_identity: :maybe)
+      end.to raise_error(ArgumentError, /on_unknown_identity/)
       expect { described_class.new(host: "example.com", ask: "text") }.to raise_error(ArgumentError, /ask/)
       expect { described_class.new(host: "example.com", sin: 5) }.to raise_error(ArgumentError, /sin/)
-      expect { described_class.new(host: "example.com", on_authenticated: 5) }.to raise_error(ArgumentError, /on_authenticated/)
+      expect do
+        described_class.new(host: "example.com", on_authenticated: 5)
+      end.to raise_error(ArgumentError, /on_authenticated/)
       expect { described_class.new(host: "example.com", cps_url: "x") }.to raise_error(ArgumentError, /cps_url/)
       expect { described_class.new(host: "example.com", clock: 1) }.to raise_error(ArgumentError, /clock/)
     end
@@ -47,7 +56,7 @@ RSpec.describe SQRL::Server do
       c = described_class.new(host: "example.com", ask: ask, sin: "7")
       expect(c.ask_for({})).to be(ask)
       expect(c.sin_for({})).to eq("7")
-      c = described_class.new(host: "example.com", ask: ->(ctx) { ctx[:a] }, sin: ->(_) { nil })
+      c = described_class.new(host: "example.com", ask: ->(ctx) { ctx[:a] }, sin: ->(_) {})
       expect(c.ask_for({ a: ask })).to be(ask)
       expect(c.sin_for({})).to be_nil
     end
@@ -122,7 +131,7 @@ RSpec.describe SQRL::Server do
     end
 
     it "issues a CPS url on remove and clears the authentication" do
-      login, s, = login!(handler, id)
+      login, = login!(handler, id)
       login2 = handler.new_login_url(ip: FlowHelpers::IP)
       s = SQRL::Session.new(id, login2.url, options: SQRL::ClientOptions.new(cps: true))
       exchange(handler, s, s.query)
@@ -247,7 +256,8 @@ RSpec.describe SQRL::Server do
     let(:stores) { described_class.stores }
 
     it "consumes nuts exactly once, even concurrently" do
-      stores.nuts.issue(nut: "n", pending_login_id: "p", expected_server: "s", ip: "ip", bound_idk: nil, expires_at: nil)
+      stores.nuts.issue(nut: "n", pending_login_id: "p", expected_server: "s", ip: "ip", bound_idk: nil,
+                        expires_at: nil)
       results = Array.new(8) { Thread.new { stores.nuts.consume("n") } }.map(&:value)
       expect(results.compact.length).to eq(1)
       expect(results.compact.first.pending_login_id).to eq("p")

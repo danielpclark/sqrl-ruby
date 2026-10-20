@@ -6,7 +6,7 @@ RSpec.describe SQRL::Rack::LoginBlock do
   it "renders the markup contract sqrl.js expects" do
     html = described_class.render(login_url: url, status_url: "/sqrl/status", cancel_url: "/cancel",
                                   script_url: "/sqrl/sqrl.js", poll_ms: 1500)
-    expect(html).to include('data-sqrl-login', %(data-sqrl-url="#{url}"), 'data-sqrl-status="/sqrl/status"',
+    expect(html).to include("data-sqrl-login", %(data-sqrl-url="#{url}"), 'data-sqrl-status="/sqrl/status"',
                             'data-sqrl-poll="1500"', 'data-sqrl-link href="sqrl://example.com/sqrl/cli?nut=abc"',
                             "data-sqrl-message", 'aria-live="polite"', "<svg", 'href="/cancel"',
                             '<script src="/sqrl/sqrl.js" defer></script>')

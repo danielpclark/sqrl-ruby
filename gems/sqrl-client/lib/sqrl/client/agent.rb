@@ -199,11 +199,11 @@ module SQRL
           break unless session.state.transient?
 
           transient += 1
-          if transient > @max_transient_retries
-            raise LoginFailed.new("the server kept answering with a transient error", reason: :transient,
-                                                                                       tif: session.last_response.tif,
-                                                                                       state: session.state)
-          end
+          next unless transient > @max_transient_retries
+
+          raise LoginFailed.new("the server kept answering with a transient error", reason: :transient,
+                                                                                    tif: session.last_response.tif,
+                                                                                    state: session.state)
         end
 
         finish(ctx, command)
@@ -230,7 +230,7 @@ module SQRL
             next if transient <= @max_transient_retries
 
             raise LoginFailed.new("the server kept answering with a transient error", reason: :transient,
-                                                                                       tif: session.last_response.tif, state: state)
+                                                                                      tif: session.last_response.tif, state: state)
           when :unknown
             next if session.has_previous? && session.try_next_previous
 
@@ -239,7 +239,7 @@ module SQRL
             return
           when :superseded
             raise LoginFailed.new("this identity was superseded on the site by a newer one", reason: :superseded,
-                                                                                            tif: session.last_response.tif, state: state)
+                                                                                             tif: session.last_response.tif, state: state)
           else
             reason = session.ip_check_failed? ? :ip_mismatch : :failed
             raise LoginFailed.new(state.message || "query failed", reason: reason, tif: session.last_response.tif,
@@ -288,7 +288,8 @@ module SQRL
         return @identity.iuk if @identity.iuk?
         return @identity.unlock_iuk!(rescue_code) if rescue_code
 
-        raise IdentityLocked, "enable/remove need the Identity Unlock Key: pass rescue_code: or use an identity that has it"
+        raise IdentityLocked,
+              "enable/remove need the Identity Unlock Key: pass rescue_code: or use an identity that has it"
       end
 
       def exchange(ctx, request)

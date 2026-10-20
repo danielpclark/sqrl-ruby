@@ -45,7 +45,7 @@ module SQRL
         }
         attrs["data-sqrl-refresh"] = refresh_url if refresh_url
         attrs.merge!(extra_attrs.transform_keys(&:to_s))
-        html = +"<div#{attributes(attrs)}>\n"
+        html = "<div#{attributes(attrs)}>\n"
         html << %(  <a class="#{h(css_class)}__link" data-sqrl-link href="#{h(url)}" rel="nofollow">#{h(link_text)}</a>\n)
         html << %(  <div class="#{h(css_class)}__qr" data-sqrl-qr>#{QR.svg(url, **qr_options)}</div>\n) if qr
         html << %(  <p class="#{h(css_class)}__message" data-sqrl-message aria-live="polite">#{h(t[:message])}</p>\n)

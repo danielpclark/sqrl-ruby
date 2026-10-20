@@ -83,7 +83,7 @@ RSpec.shared_context "live example app" do |app_name, env: {}|
   before(:all) do
     @example_app = ExampleApp.start(app_name, env: env)
   rescue StandardError => e
-    raise "could not boot #{app_name}#{env.empty? ? '' : " with #{env}"}: #{e.message}"
+    raise "could not boot #{app_name}#{" with #{env}" unless env.empty?}: #{e.message}"
   end
 
   after(:all) do
@@ -96,7 +96,10 @@ RSpec.shared_context "live example app" do |app_name, env: {}|
 
   def ephemeral(seed = nil) = SQRL::Client::Identity.ephemeral(seed)
   def new_transport = DescriptorTransport.new(descriptor, app)
-  def new_agent(identity, transport: new_transport, **opts) = SQRL::Client::Agent.new(identity: identity, transport: transport, **opts)
+
+  def new_agent(identity, transport: new_transport, **opts)
+    SQRL::Client::Agent.new(identity: identity, transport: transport, **opts)
+  end
 
   # Log in with +agent+ via the example's login page.
   def login_via_site(agent)
@@ -108,7 +111,9 @@ RSpec.shared_context "live example app" do |app_name, env: {}|
     expect(result.cps_url).to start_with(app.base_url), "CPS url should point at the site"
     expect(result.landing).not_to be_nil
     expect(result.landing.status).to eq(200), "landing answered #{result.landing.status} at #{result.landing.final_url}"
-    expect(site.success?(result.landing)).to be(true), "landing at #{result.landing.final_url} is not a logged-in page:\n#{result.landing.body[0, 400]}"
+    expect(site.success?(result.landing)).to be(true),
+                                             "landing at #{result.landing.final_url} is not a logged-in page:\n#{result.landing.body[0,
+                                                                                                                                     400]}"
   end
 
   def protected_status(transport)

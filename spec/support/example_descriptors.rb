@@ -41,7 +41,7 @@ module ExampleDescriptors
     def anonymous_protected_status = anonymous_status || 403
   end
 
-  IDK_MARKER = /Hello, <code>[A-Za-z0-9_-]{43}<\/code>|id="identity"|Logged in as/
+  IDK_MARKER = %r{Hello, <code>[A-Za-z0-9_-]{43}</code>|id="identity"|Logged in as}
 
   ALL = {
     "rack-app" => Descriptor.new(
@@ -67,18 +67,23 @@ module ExampleDescriptors
       login_page: lambda { |transport, app|
         home = transport.get(app.url("/"))
         token = home.body[/name="authenticity_token" value="([^"]+)"/, 1]
-        raise "no authenticity_token on #{app.url('/')}" unless token
+        raise "no authenticity_token on #{app.url("/")}" unless token
 
         transport.post_form(app.url("/auth/sqrl"), "authenticity_token=#{CGI.escape(token)}")
       },
-      browser_login: ->(page, app) { page.visit(app.url("/")); page.click_button("Sign in with SQRL") },
+      browser_login: lambda { |page, app|
+        page.visit(app.url("/"))
+        page.click_button("Sign in with SQRL")
+      },
       protected_path: "/protected", home_path: "/",
       logged_in: ->(body) { body.match?(/Logged in as|id="uid"/) }, logout: { text: "Log out" }, cancel: false,
       features: {}, ready: "config.ru", ask_sin_files: %w[app.rb]
     ),
     "rails-auth-app" => Descriptor.new(
       name: "rails-auth-app", login_path: "/session/new", protected_path: "/protected", home_path: "/",
-      logged_in: ->(body) { body.match?(/<p id="status">Signed in as|id="protected"/) }, logout: { text: "Sign out" }, cancel: false,
+      logged_in: lambda { |body|
+        body.match?(/<p id="status">Signed in as|id="protected"/)
+      }, logout: { text: "Sign out" }, cancel: false,
       features: {}, ready: "config/initializers/sqrl.rb", anonymous_status: 302,
       ask_sin_files: %w[config/initializers/sqrl.rb]
     ),

@@ -2,7 +2,7 @@
 
 # Boots each example application from its config.ru and drives a full login.
 RSpec.describe "example applications" do
-  APPS = {}
+  APPS = {} # rubocop:disable Style/MutableConstant -- a per-run cache of loaded example apps
 
   def load_example(name)
     APPS[name] ||= begin

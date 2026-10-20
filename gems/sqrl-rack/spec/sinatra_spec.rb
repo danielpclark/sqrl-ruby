@@ -21,7 +21,10 @@ RSpec.describe Sinatra::SQRL do
       get("/qr") { sqrl_qr_svg }
       get("/script") { sqrl_script_tag }
       get("/protected") { sqrl_authenticated? ? "hello #{current_sqrl_identity.idk_b64}" : halt(403, "no") }
-      post("/logout") { sqrl_logout!; "bye" }
+      post("/logout") do
+        sqrl_logout!
+        "bye"
+      end
     end
   end
 

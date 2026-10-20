@@ -404,7 +404,8 @@ RSpec.describe "protocol flows" do
     # Garbage bodies are client failures, not exceptions.
     _, s = new_session(handler, id)
     q = s.query
-    expect(handler.handle(nut: nut_of(q), body: "client=%%%&server=x&ids=y", ip: FlowHelpers::IP).tif).to be_client_failure
+    expect(handler.handle(nut: nut_of(q), body: "client=%%%&server=x&ids=y",
+                          ip: FlowHelpers::IP).tif).to be_client_failure
     _, s = new_session(handler, id)
     q = s.query
     expect(handler.handle(nut: nut_of(q), body: "", ip: FlowHelpers::IP).tif).to be_client_failure

@@ -219,7 +219,8 @@ module SQRL
           return unless status["next"]
 
           landing = browser.get(URI.join(page.status_url, status["next"]).to_s)
-          check(@site.success?(landing), "following the poll's next URL did not log the browser in (HTTP #{landing.status})")
+          check(@site.success?(landing),
+                "following the poll's next URL did not log the browser in (HTTP #{landing.status})")
         end
 
         # ---- account commands ------------------------------------------------------------
@@ -292,7 +293,10 @@ module SQRL
           id = identity
           login(id, ctx, cps: false, poll: false, ask_handler: ->(_ask) { @ask_button })
           asked = nil
-          result = login(id, ctx, cps: false, poll: false, ask_handler: ->(ask) { asked = ask; @ask_button })
+          result = login(id, ctx, cps: false, poll: false, ask_handler: lambda { |ask|
+            asked = ask
+            @ask_button
+          })
           check(!asked.nil?, "the server posed no ask= to a known identity")
           check(!asked.message.to_s.empty?, "ask carried no message")
           check(result.authenticated?, "login with the ask answered was not accepted")
@@ -369,7 +373,8 @@ module SQRL
           flipped = client.dup
           flipped[5] = flipped[5] == "A" ? "B" : "A"
           resp = raw_post(browser, req.url, req.body.sub(client, flipped), ctx, "tampered client")
-          check(resp.tif.client_failure? && resp.tif.command_failed?, "tampered client= accepted (0x#{resp.tif.to_hex})")
+          check(resp.tif.client_failure? && resp.tif.command_failed?,
+                "tampered client= accepted (0x#{resp.tif.to_hex})")
         end
 
         def case_wrong_server_echo_rejected(ctx)
@@ -380,7 +385,8 @@ module SQRL
           foreign = Session.new(id.unlocked, other.sqrl_url).query
           url = page.sqrl_url.sub(/\As?qrl/, page.sqrl_url.start_with?("qrl") ? "http" : "https")
           resp = raw_post(browser, url, foreign.body, ctx, "wrong server echo")
-          check(resp.tif.client_failure? && resp.tif.command_failed?, "mismatched server= accepted (0x#{resp.tif.to_hex})")
+          check(resp.tif.client_failure? && resp.tif.command_failed?,
+                "mismatched server= accepted (0x#{resp.tif.to_hex})")
           _ = session
         end
 
@@ -405,8 +411,10 @@ module SQRL
           stripped_client = Protocol.decode_text(ident.body[/client=([^&]+)/, 1]).gsub(/^(suk|vuk)=.*\r\n/, "")
           client_b64 = Util.b64u_encode(stripped_client.b)
           server = ident.body[/server=([^&]+)/, 1]
-          sig = Util.b64u_encode(Crypto.ed25519_sign(id.unlocked.site_seed(session.url.site_key_bytes), (client_b64 + server).b))
-          resp = raw_post(browser, ident.url, "client=#{client_b64}&server=#{server}&ids=#{sig}", ctx, "ident without lock")
+          sig = Util.b64u_encode(Crypto.ed25519_sign(id.unlocked.site_seed(session.url.site_key_bytes),
+                                                     (client_b64 + server).b))
+          resp = raw_post(browser, ident.url, "client=#{client_b64}&server=#{server}&ids=#{sig}", ctx,
+                          "ident without lock")
           check(resp.tif.command_failed?, "ident without suk/vuk created an account (0x#{resp.tif.to_hex})")
           check(!resp.tif.id_match?, "ident without suk/vuk reported ID_MATCH")
         end

@@ -53,7 +53,7 @@ RSpec.describe SQRL::Textual do
     lines = described_class.format_for_display(raw).lines(chomp: true)
     expect(lines.length).to eq(3)
     expect(lines[0].length).to eq(24)
-    expect(lines[0].split(" ").length).to eq(5)
+    expect(lines[0].split.length).to eq(5)
   end
 
   describe "base56 vectors validated against GRC's client" do

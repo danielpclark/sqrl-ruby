@@ -6,7 +6,7 @@ module FlowHelpers
 
   def new_handler(**config)
     defaults = { host: "example.com", path: "/cli.sqrl" }
-    SQRL::Server::Handler.new(config: SQRL::Server::Config.new(**defaults.merge(config)),
+    SQRL::Server::Handler.new(config: SQRL::Server::Config.new(**defaults, **config),
                               stores: SQRL::Server::Memory.stores)
   end
 

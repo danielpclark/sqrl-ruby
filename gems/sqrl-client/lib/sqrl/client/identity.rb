@@ -41,7 +41,10 @@ module SQRL
 
       # Unlock a parsed {SQRL::S4Identity}.
       def self.from_s4(s4, password:, rescue_code: nil, path: nil)
-        raise IdentityLocked, "identity file has no password block; import it with the rescue code" unless s4.password_block?
+        unless s4.password_block?
+          raise IdentityLocked,
+                "identity file has no password block; import it with the rescue code"
+        end
 
         identity = new(s4.unlock(password.to_s), s4: s4, path: path)
         identity.unlock_iuk!(rescue_code) if rescue_code
@@ -86,7 +89,7 @@ module SQRL
         s4 = S4Identity.create(iuk, password, rescue_code, settings, rescue_ms, **kw, &progress)
         File.binwrite(path, s4.to_bytes) if path
         new(UnlockedIdentity.from_iuk(iuk), s4: s4, iuk: iuk, path: path,
-                                             rescue_code: Storage.format_rescue_code(rescue_code))
+                                            rescue_code: Storage.format_rescue_code(rescue_code))
       end
 
       # An identity straight from a 32-byte IUK, skipping EnScrypt and storage entirely.
@@ -96,8 +99,8 @@ module SQRL
       def self.ephemeral(seed = nil, previous: [])
         iuk = case seed
               when nil then Util.random_bytes(32)
-              when String then seed.b.bytesize == 32 ? seed.b : Crypto.sha256("sqrl-client-ephemeral:" + seed.to_s.b)
-              else Crypto.sha256("sqrl-client-ephemeral:" + seed.to_s.b)
+              when String then seed.b.bytesize == 32 ? seed.b : Crypto.sha256("sqrl-client-ephemeral:#{seed.to_s.b}")
+              else Crypto.sha256("sqrl-client-ephemeral:#{seed.to_s.b}")
               end
         new(UnlockedIdentity.from_iuk(iuk, previous), iuk: iuk, previous_iuks: previous)
       end
@@ -113,6 +116,7 @@ module SQRL
         if (hex = env["SQRL_IUK_HEX"]) && !hex.empty?
           return ephemeral(Util.hex_decode(hex))
         end
+
         file = env["SQRL_IDENTITY_FILE"]
         return nil if file.nil? || file.empty?
 
@@ -135,9 +139,7 @@ module SQRL
 
       # The Identity Unlock Key when it is known (ephemeral identities, freshly created
       # ones, or after {#unlock_iuk!}); nil otherwise.
-      def iuk
-        @iuk
-      end
+      attr_reader :iuk
 
       # Whether +enable+/+remove+/+rekey!+ can run without a rescue code.
       def iuk? = !@iuk.nil?
@@ -216,8 +218,8 @@ module SQRL
       end
 
       def inspect
-        "#<SQRL::Client::Identity fingerprint=#{fingerprint} iuk=#{iuk? ? 'known' : 'locked'} " \
-          "previous=#{previous_count}#{@path ? " path=#{@path}" : ''}>"
+        "#<SQRL::Client::Identity fingerprint=#{fingerprint} iuk=#{iuk? ? "known" : "locked"} " \
+          "previous=#{previous_count}#{" path=#{@path}" if @path}>"
       end
       alias to_s inspect
     end

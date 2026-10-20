@@ -6,7 +6,7 @@ require "bundler/setup"
 $LOAD_PATH.unshift File.expand_path("../gems/sqrl-core/lib", __dir__)
 $LOAD_PATH.unshift File.expand_path("../gems/sqrl-client/lib", __dir__)
 
-Dir[File.join(__dir__, "support", "*.rb")].sort.each { |f| require f }
+Dir[File.join(__dir__, "support", "*.rb")].each { |f| require f }
 
 RSpec.configure do |config|
   config.expect_with(:rspec) { |c| c.syntax = :expect }

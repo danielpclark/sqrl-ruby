@@ -148,12 +148,16 @@ module SQRL
           end
           EXIT_OK
         when "import"
-          raise ArgumentError, "--textual FILE, --rescue-code CODE and --out FILE are required" unless opts[:textual] && opts[:rescue_code] && opts[:out]
+          unless opts[:textual] && opts[:rescue_code] && opts[:out]
+            raise ArgumentError,
+                  "--textual FILE, --rescue-code CODE and --out FILE are required"
+          end
 
           password = opts[:password] || ENV["SQRL_PASSWORD"] || prompt_password("Password for the imported identity: ")
           id = Identity.from_textual(opts[:textual], rescue_code: opts[:rescue_code], password: password)
           id.save(opts[:out])
-          @out.puts opts[:json] ? JSON.generate(path: opts[:out], fingerprint: id.fingerprint) : "Identity written to #{opts[:out]} (fingerprint #{id.fingerprint})."
+          @out.puts opts[:json] ? JSON.generate(path: opts[:out],
+                                                fingerprint: id.fingerprint) : "Identity written to #{opts[:out]} (fingerprint #{id.fingerprint})."
           EXIT_OK
         when "show"
           id = load_identity(identity: opts[:identity], password: opts[:password])
@@ -191,7 +195,8 @@ module SQRL
         if opts[:out]
           File.binwrite(opts[:out], content)
           File.chmod(0o600, opts[:out])
-          @out.puts opts[:json] ? JSON.generate(path: opts[:out], format: format, bytes: content.bytesize) : "Wrote #{format} identity to #{opts[:out]}."
+          @out.puts opts[:json] ? JSON.generate(path: opts[:out], format: format,
+                                                bytes: content.bytesize) : "Wrote #{format} identity to #{opts[:out]}."
         else
           @out.puts content
         end
@@ -202,8 +207,9 @@ module SQRL
       # identity, so sites re-key the account on the next login. Prints the new rescue code.
       def identity_rekey(opts)
         id = load_identity(identity: opts[:identity], password: opts[:password])
-        rescue_code = opts[:rescue_code] || ENV["SQRL_RESCUE_CODE"] or raise ArgumentError, "--rescue-code CODE is required to re-key"
-        password = opts[:new_password] || opts[:password] || ENV["SQRL_PASSWORD"]
+        rescue_code = opts[:rescue_code] || ENV.fetch("SQRL_RESCUE_CODE", nil) or raise ArgumentError,
+                                                                                        "--rescue-code CODE is required to re-key"
+        password = opts[:new_password] || opts[:password] || ENV.fetch("SQRL_PASSWORD", nil)
         id.rekey!(password: password, rescue_code: rescue_code, rescue_seconds: opts[:rescue_seconds])
         id.save(opts[:out]) if opts[:out]
         if opts[:json]
@@ -218,7 +224,8 @@ module SQRL
 
       # Re-encrypt the password block under a new password (the rescue block is untouched).
       def identity_change_password(opts)
-        new_password = opts[:new_password] or raise ArgumentError, "--new-password PW (or --new-password-file) is required"
+        new_password = opts[:new_password] or raise ArgumentError,
+                                                    "--new-password PW (or --new-password-file) is required"
         id = load_identity(identity: opts[:identity], password: opts[:password])
         raise IdentityLocked, "ephemeral identities have no password to change" unless id.s4
 
@@ -226,7 +233,8 @@ module SQRL
         settings.pw_verify_seconds = opts[:pw_seconds] if opts[:pw_seconds]
         id.s4.set_password(id.unlocked, new_password, settings)
         id.save(opts[:out] || id.path)
-        @out.puts opts[:json] ? JSON.generate(path: id.path, fingerprint: id.fingerprint) : "Password changed; identity written to #{id.path}."
+        @out.puts opts[:json] ? JSON.generate(path: id.path,
+                                              fingerprint: id.fingerprint) : "Password changed; identity written to #{id.path}."
         EXIT_OK
       end
 
@@ -238,7 +246,9 @@ module SQRL
           @out.puts JSON.generate(current: id.fingerprint, previous: rows)
         else
           @out.puts "current: #{id.fingerprint}"
-          @out.puts(rows.empty? ? "previous: none" : rows.map { |r| "previous[#{r[:index]}]: #{r[:fingerprint]}" }.join("\n"))
+          @out.puts(rows.empty? ? "previous: none" : rows.map do |r|
+            "previous[#{r[:index]}]: #{r[:fingerprint]}"
+          end.join("\n"))
         end
         EXIT_OK
       end
@@ -283,8 +293,8 @@ module SQRL
           when :login then agent.login(target)
           when :query then agent.query(target)
           when :disable then agent.disable(target)
-          when :enable then agent.enable(target, rescue_code: opts[:rescue_code] || ENV["SQRL_RESCUE_CODE"])
-          when :remove then agent.remove(target, rescue_code: opts[:rescue_code] || ENV["SQRL_RESCUE_CODE"])
+          when :enable then agent.enable(target, rescue_code: opts[:rescue_code] || ENV.fetch("SQRL_RESCUE_CODE", nil))
+          when :remove then agent.remove(target, rescue_code: opts[:rescue_code] || ENV.fetch("SQRL_RESCUE_CODE", nil))
           end
         write_cookies(transport, opts) if opts[:cookies_out]
         if opts[:json]
@@ -296,9 +306,12 @@ module SQRL
       end
 
       def describe(result)
-        lines = ["#{result.command}: #{result.state.kind}#{result.state.disabled? ? ' (disabled)' : ''} tif=0x#{result.tif&.to_hex}"]
+        lines = ["#{result.command}: #{result.state.kind}#{" (disabled)" if result.state.disabled?} tif=0x#{result.tif&.to_hex}"]
         lines << "idk: #{result.idk}"
-        lines << "authenticated: #{result.authenticated?}#{result.created? ? ' (account created)' : ''}#{result.rekeyed? ? ' (account re-keyed)' : ''}" if result.command != :query
+        if result.command != :query
+          notes = [(" (account created)" if result.created?), (" (account re-keyed)" if result.rekeyed?)].compact.join
+          lines << "authenticated: #{result.authenticated?}#{notes}"
+        end
         lines << "cps url: #{result.cps_url}" if result.cps_url
         lines << "landing: HTTP #{result.landing.status} #{result.landing.final_url}" if result.landing
         lines.join("\n")
@@ -348,13 +361,16 @@ module SQRL
       # ---- helpers ---------------------------------------------------------------------------
 
       def load_identity(identity: nil, password: nil, iuk_hex: nil)
-        iuk_hex ||= ENV["SQRL_IUK_HEX"]
+        iuk_hex ||= ENV.fetch("SQRL_IUK_HEX", nil)
         return Identity.ephemeral(Util.hex_decode(iuk_hex)) if iuk_hex && !iuk_hex.empty?
 
-        file = identity || ENV["SQRL_IDENTITY_FILE"]
-        raise ArgumentError, "an identity is required (--identity FILE, --iuk-hex HEX, SQRL_IDENTITY_FILE or SQRL_IUK_HEX)" if file.nil?
+        file = identity || ENV.fetch("SQRL_IDENTITY_FILE", nil)
+        if file.nil?
+          raise ArgumentError,
+                "an identity is required (--identity FILE, --iuk-hex HEX, SQRL_IDENTITY_FILE or SQRL_IUK_HEX)"
+        end
 
-        password ||= ENV["SQRL_PASSWORD"]
+        password ||= ENV.fetch("SQRL_PASSWORD", nil)
         password ||= File.read(ENV["SQRL_PASSWORD_FILE"]).chomp if ENV["SQRL_PASSWORD_FILE"]
         password ||= prompt_password("Identity password: ")
         Identity.load(file, password: password)

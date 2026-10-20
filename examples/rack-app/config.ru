@@ -30,7 +30,7 @@ use SQRL::Rack::Middleware,
     after_login: "/protected",
     on_unknown_identity: (ENV["SQRL_UNKNOWN_IDENTITY"] || :create).to_sym,
     require_ip_match: ENV["SQRL_IGNORE_IP"].nil?,
-    ask: (SQRL::Ask.new(message: "Allow this login from the Rack demo?", buttons: [{ label: "Allow" }, { label: "Deny" }]) if ENV["SQRL_ASK"]),
+    ask: (SQRL::Ask.new(message: "Allow this login from the Rack demo?", buttons: [{ label: "Allow" }, { label: "Deny" }], accept: [1]) if ENV["SQRL_ASK"]),
     sin: (ENV["SQRL_SIN"] ? "0" : nil)
 
 module RackApp

@@ -12,7 +12,8 @@ RSpec.describe SQRL::Rack::Middleware do
       sqrl = env["sqrl.server"]
       case env["PATH_INFO"]
       when "/login"
-        [200, { "content-type" => "text/html" }, [sqrl.login_block(cancel_url: "/bye", return_to: env["QUERY_STRING"][/rt=(.+)/, 1])]]
+        [200, { "content-type" => "text/html" },
+         [sqrl.login_block(cancel_url: "/bye", return_to: env["QUERY_STRING"][/rt=(.+)/, 1])]]
       when "/who"
         [200, { "content-type" => "text/plain" }, [sqrl.authenticated? ? sqrl.idk_b64 : "anonymous"]]
       when "/logout"
@@ -201,7 +202,8 @@ RSpec.describe SQRL::Rack::Middleware do
   describe "protocol endpoint" do
     it "answers garbage with a protocol error body, status 200" do
       client = new_client
-      client.post("/sqrl/cli?nut=bogus", "client=x&server=y&ids=z", { "CONTENT_TYPE" => "application/x-www-form-urlencoded" })
+      client.post("/sqrl/cli?nut=bogus", "client=x&server=y&ids=z",
+                  { "CONTENT_TYPE" => "application/x-www-form-urlencoded" })
       expect(client.last_response.status).to eq(200)
       tif = client.last_response.headers["x-sqrl-tif"].to_i(16)
       expect(tif & SQRL::Tif::TRANSIENT_ERROR).not_to eq(0)
@@ -264,7 +266,10 @@ RSpec.describe SQRL::Rack::Middleware do
 
     it "accepts options from a callable, resolved on first use" do
       calls = 0
-      mw = described_class.new(->(_env) { [200, {}, ["x"]] }, -> { calls += 1; { host: "h.example" } })
+      mw = described_class.new(->(_env) { [200, {}, ["x"]] }, lambda {
+        calls += 1
+        { host: "h.example" }
+      })
       expect(calls).to eq(0)
       expect(mw.options[:host]).to eq("h.example")
       mw.options

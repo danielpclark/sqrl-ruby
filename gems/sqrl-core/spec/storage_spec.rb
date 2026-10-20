@@ -3,8 +3,6 @@
 require "sqrl/test_vectors"
 
 RSpec.describe SQRL::Storage do
-
-
   let(:identity_bytes) { SQRL::Util.hex_decode(SQRL::TestVectors::ANDROID_IDENTITY_HEX) }
   let(:test_identity) { SQRL::S4Identity.parse(identity_bytes) }
 
@@ -125,7 +123,8 @@ RSpec.describe SQRL::Storage do
 
   it "NFKC-normalises passwords" do
     expect(described_class.normalize_password("ﬁsh Å")).to eq("fish Å".b)
-    id = SQRL::S4Identity.create("\x03" * 32, "ﬁsh", "1234-5678-9012-3456-7890-1234", fast_settings, 1, now_ms: fake_clock)
+    id = SQRL::S4Identity.create("\x03" * 32, "ﬁsh", "1234-5678-9012-3456-7890-1234", fast_settings, 1,
+                                 now_ms: fake_clock)
     expect { id.unlock("fish") }.not_to raise_error
   end
 
@@ -138,13 +137,17 @@ RSpec.describe SQRL::Storage do
 
   it "rejects malformed files" do
     expect { SQRL::S4Identity.parse("short") }.to raise_error(SQRL::FormatError, /too short/)
-    expect { SQRL::S4Identity.parse("notaheader#{'x' * 20}") }.to raise_error(SQRL::FormatError, /header/)
-    expect { SQRL::S4Identity.parse("sqrldata#{[200, 0, 1, 0].pack('C*')}") }.to raise_error(SQRL::FormatError, /claims 200 bytes/)
+    expect { SQRL::S4Identity.parse("notaheader#{"x" * 20}") }.to raise_error(SQRL::FormatError, /header/)
+    expect do
+      SQRL::S4Identity.parse("sqrldata#{[200, 0, 1, 0].pack("C*")}")
+    end.to raise_error(SQRL::FormatError, /claims 200 bytes/)
     expect { SQRL::S4Identity.parse_blocks([9, 0, 7, 0, 1, 2, 3, 4, 5].pack("C*")) }
       .to raise_error(SQRL::FormatError, /neither a password nor a rescue block/)
-    expect { SQRL::S4Identity.parse(test_identity.to_bytes + "\x01") }.to raise_error(SQRL::FormatError, /trailing/)
-    expect(SQRL::S4Identity.parse(test_identity.to_bytes + "\0\0\0\0\0")).to eq(test_identity)
-    expect { SQRL::S4Identity.parse_blocks([0, 0, 1, 0, 9].pack("C*")) }.to raise_error(SQRL::FormatError, /zero-length/)
+    expect { SQRL::S4Identity.parse("#{test_identity.to_bytes}\x01") }.to raise_error(SQRL::FormatError, /trailing/)
+    expect(SQRL::S4Identity.parse("#{test_identity.to_bytes}\0\0\0\0\0")).to eq(test_identity)
+    expect do
+      SQRL::S4Identity.parse_blocks([0, 0, 1, 0, 9].pack("C*"))
+    end.to raise_error(SQRL::FormatError, /zero-length/)
   end
 
   it "validates block sizes" do
@@ -185,9 +188,9 @@ RSpec.describe SQRL::Storage do
       expect(code).to match(/\A\d{24}\z/)
       expect(described_class.rescue_code_from_entropy("\0" * 32)).to eq("000000000000000000000000")
       # 2^256 mod 10^24, with digits least-significant first.
-      e = ("\0" * 31) + "\x01"
+      e = "#{"\0" * 31}\x01"
       expect(described_class.rescue_code_from_entropy(e)).to eq("100000000000000000000000")
-      e = ("\0" * 31) + "\x0A"
+      e = "#{"\0" * 31}\x0A"
       expect(described_class.rescue_code_from_entropy(e)).to eq("010000000000000000000000")
     end
 

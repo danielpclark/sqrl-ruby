@@ -93,7 +93,7 @@ RSpec.describe SQRL::Client::Agent do
   it "re-keys the account when the identity was re-keyed and refuses the superseded one" do
     id = ephemeral("frank")
     first = new_agent(id).login(site.login_url)
-    old = id.previous_identity || id
+    id.previous_identity || id
     id.rekey!
     expect(id.previous_count).to eq(1)
     result = new_agent(id).login(site.login_url)
@@ -111,7 +111,8 @@ RSpec.describe SQRL::Client::Agent do
   it "walks older previous identities in turn" do
     a = ephemeral("gina-1")
     new_agent(a).login(site.login_url)
-    b = SQRL::Client::Identity.ephemeral(nil, previous: [SQRL::Util.random_bytes(32), SQRL::Util.random_bytes(32), a.iuk])
+    b = SQRL::Client::Identity.ephemeral(nil,
+                                         previous: [SQRL::Util.random_bytes(32), SQRL::Util.random_bytes(32), a.iuk])
     result = new_agent(b).login(site.login_url)
     expect(result).to be_rekeyed
     expect(result.transcript.count { |t| t[:command] == :query }).to eq(3)
@@ -127,7 +128,10 @@ RSpec.describe SQRL::Client::Agent do
       new_agent(id).login(site.login_url) # creation: the ask is only posed for known identities
       expect { new_agent(id).login(site.login_url) }.to raise_error(SQRL::Client::AskRequired) { |e| expect(e.ask.message).to eq("Allow this login?") }
       seen = nil
-      result = new_agent(id, ask_handler: ->(ask) { seen = ask; 1 }).login(site.login_url)
+      result = new_agent(id, ask_handler: lambda { |ask|
+        seen = ask
+        1
+      }).login(site.login_url)
       expect(seen.buttons.map(&:label)).to eq(%w[Allow Deny])
       expect(result).to be_authenticated
       expect(result.ask).to eq(seen)

@@ -21,7 +21,10 @@ RSpec.describe SQRL::Client::Transport do
     expect { described_class.new.get("http://example.com/") }.to raise_error(SQRL::Client::TransportError, /plain http/)
     expect { described_class.new(allow_http: false).get(site.login_url) }.to raise_error(SQRL::Client::TransportError)
     expect { described_class.new.get("ftp://example.com/") }.to raise_error(SQRL::Client::TransportError, /scheme/)
-    expect { described_class.new.get("http://127.0.0.1:1/") }.to raise_error(SQRL::Client::TransportError, /ECONNREFUSED|Connection refused/)
+    expect do
+      described_class.new.get("http://127.0.0.1:1/")
+    end.to raise_error(SQRL::Client::TransportError,
+                       /ECONNREFUSED|Connection refused/)
   end
 
   it "parses JSON bodies" do

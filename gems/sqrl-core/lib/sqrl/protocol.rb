@@ -108,12 +108,12 @@ module SQRL
 
     # Whether only version-1 bits are set.
     def defined?
-      (@value & ~DEFINED_BITS).zero?
+      @value.nobits?(~DEFINED_BITS)
     end
 
     # Test one or more flags.
     def has?(flag)
-      (@value & flag) != 0
+      @value.anybits?(flag)
     end
 
     def id_match? = has?(ID_MATCH)
@@ -257,7 +257,7 @@ module SQRL
     end
 
     def inspect
-      "#<SQRL::ClientOptions #{to_wire || '(none)'}>"
+      "#<SQRL::ClientOptions #{to_wire || "(none)"}>"
     end
   end
 

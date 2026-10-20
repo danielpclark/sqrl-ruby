@@ -33,8 +33,11 @@ Style/OptionalBooleanParameter:
   Enabled: false
 
 Layout/LineLength:
-  Max: 120
+  Max: 150
   AllowedPatterns: ['\A\s*#', '\A\s*(it|describe|context) "']
+  Exclude:
+    - "**/spec/**/*"
+    - "**/*.gemspec"
 
 Metrics/AbcSize:
   Enabled: false
@@ -57,13 +60,27 @@ Naming/MethodParameterName:
   Enabled: false
 Naming/VariableNumber:
   Enabled: false
-Naming/PredicateName:
+Naming/PredicatePrefix:
+  Enabled: false
+Naming/PredicateMethod:
+  Enabled: false
+Naming/AccessorMethodName:
   Enabled: false
 
 Lint/MissingSuper:
   Enabled: false
 Lint/EmptyBlock:
   Enabled: false
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - "**/spec/**/*"
+Metrics/BlockNesting:
+  Enabled: false
+Style/SafeNavigationChainLength:
+  Enabled: false
+Naming/FileName:
+  Exclude:
+    - "gems/*/lib/*-*.rb"
 
 Gemspec/RequireMFA:
   Enabled: false

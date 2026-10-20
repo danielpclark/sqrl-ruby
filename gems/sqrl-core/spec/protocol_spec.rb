@@ -47,7 +47,8 @@ RSpec.describe SQRL::Protocol do
     it "round-trips the wire form" do
       o = described_class.new(sqrlonly: true, cps: true)
       expect(o.to_wire).to eq("sqrlonly~cps")
-      expect(described_class.from_wire("cps~suk~noiptest")).to eq(described_class.new(cps: true, suk: true, noiptest: true))
+      expect(described_class.from_wire("cps~suk~noiptest")).to eq(described_class.new(cps: true, suk: true,
+                                                                                      noiptest: true))
       expect(described_class.new.to_wire).to be_nil
       expect(described_class.from_wire("bogus~cps").to_wire).to eq("cps")
       expect(described_class.from_wire(nil)).to eq(described_class.new)
@@ -128,7 +129,7 @@ RSpec.describe SQRL::Protocol do
       expect(r.ask.message).to eq("Hi")
       expect(r.url).to eq("https://example.com/ok")
       expect(r.can).to eq("/bye")
-      expect { described_class.parse(b64("ver=1\r\nnut=a\r\ntif=1\r\nqry=/x\r\nsuk=#{b64('short')}\r\n")) }
+      expect { described_class.parse(b64("ver=1\r\nnut=a\r\ntif=1\r\nqry=/x\r\nsuk=#{b64("short")}\r\n")) }
         .to raise_error(SQRL::FormatError)
     end
 
@@ -136,7 +137,9 @@ RSpec.describe SQRL::Protocol do
       bad = -> { described_class.parse(b64("ver=2\r\nnut=a\r\ntif=0\r\nqry=/x\r\n")) }
       expect(&bad).to raise_error(SQRL::ProtocolError, /version/)
       expect { described_class.parse(b64("ver=1\r\ntif=0\r\nqry=/x\r\n")) }.to raise_error(SQRL::ProtocolError, /nut/)
-      expect { described_class.parse(b64("ver=1\r\nnut=\r\ntif=0\r\nqry=/x\r\n")) }.to raise_error(SQRL::ProtocolError, /empty nut/)
+      expect do
+        described_class.parse(b64("ver=1\r\nnut=\r\ntif=0\r\nqry=/x\r\n"))
+      end.to raise_error(SQRL::ProtocolError, /empty nut/)
       expect { described_class.parse(b64("ver=1\r\nnut=a\r\nqry=/x\r\n")) }.to raise_error(SQRL::ProtocolError, /tif/)
       expect { described_class.parse(b64("ver=1\r\nnut=a\r\ntif=0\r\n")) }.to raise_error(SQRL::ProtocolError, /qry/)
       expect { described_class.parse(b64("ver=1\r\nnut=a\r\ntif=405\r\nqry=/x\r\n")) }

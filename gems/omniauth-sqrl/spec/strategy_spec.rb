@@ -21,7 +21,7 @@ RSpec.describe OmniAuth::Strategies::SQRL do
           auth = env["omniauth.auth"]
           [200, { "content-type" => "application/json" }, [JSON.generate(auth ? auth.to_hash : { "none" => true })]]
         when "/auth/failure"
-          [200, { "content-type" => "text/plain" }, ["failure:#{req.params['message']}"]]
+          [200, { "content-type" => "text/plain" }, ["failure:#{req.params["message"]}"]]
         else
           [404, { "content-type" => "text/plain" }, ["app:#{req.path_info}"]]
         end
@@ -209,7 +209,7 @@ RSpec.describe OmniAuth::Strategies::SQRL do
       browser.get("/auth/failure") # any request to put user_id in the session via the app? use the session directly
       browser.last_request.env["rack.session"]["user_id"] = 42
       browser.post("/auth/sqrl", {}, { "REMOTE_ADDR" => ClientHelpers::BROWSER_IP, "HTTPS" => "on",
-                                        "rack.session" => browser.last_request.env["rack.session"] })
+                                       "rack.session" => browser.last_request.env["rack.session"] })
       url = login_url_from(browser.last_response.body)
       session = cps_login(browser, url)
       auth = auth_hash(browser)
