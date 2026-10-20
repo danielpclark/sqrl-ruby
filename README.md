@@ -5,14 +5,18 @@ ecosystem: a pure-Ruby protocol core, server-side integrations that give existin
 systems SQRL support with one gem and one line of configuration, and a bot-capable client
 that logs in to SQRL-enabled websites from scripts and test suites.
 
-| Gem | Use it when | Quick start |
-| --- | --- | --- |
-| [`sqrl-core`](gems/sqrl-core) | you need the protocol, the cryptography or the identity formats directly | `SQRL::Session`, `SQRL::Server::Handler`, `SQRL::S4Identity` |
-| [`sqrl-rack`](gems/sqrl-rack) | a Rack application or Sinatra | `use SQRL::Rack::Middleware` / `register Sinatra::SQRL` |
-| [`omniauth-sqrl`](gems/omniauth-sqrl) | you already use OmniAuth | `provider :sqrl` |
-| [`sqrl-rails`](gems/sqrl-rails) | Rails, including the Rails 8 `generate authentication` stack | `bin/rails generate sqrl:install` |
-| [`devise-sqrl`](gems/devise-sqrl) | Devise | `devise :sqrl_authenticatable` |
-| [`sqrl-client`](gems/sqrl-client) | bots, automation, tests; checking a server's conformance | `SQRL::Client::Agent.new(identity:).login(url)` |
+| Gem | Require | Use it when | Quick start |
+| --- | --- | --- | --- |
+| [`sqrl-core`](gems/sqrl-core) | `require "sqrl/core"` (or `"sqrl"`) | you need the protocol, the cryptography or the identity formats directly | `SQRL::Session`, `SQRL::Server::Handler`, `SQRL::S4Identity` |
+| [`sqrl-rack`](gems/sqrl-rack) | `require "sqrl/rack"` | a Rack application or Sinatra | `use SQRL::Rack::Middleware` / `register Sinatra::SQRL` |
+| [`omniauth-sqrl`](gems/omniauth-sqrl) | `require "omniauth/sqrl"` | you already use OmniAuth | `provider :sqrl` |
+| [`sqrl-rails`](gems/sqrl-rails) | `require "sqrl/rails"` | Rails, including the Rails 8 `generate authentication` stack | `bin/rails generate sqrl:install` |
+| [`devise-sqrl`](gems/devise-sqrl) | `require "devise/sqrl"` | Devise | `devise :sqrl_authenticatable` |
+| [`sqrl-client`](gems/sqrl-client) | `require "sqrl/client"` | bots, automation, tests; checking a server's conformance | `SQRL::Client::Agent.new(identity:).login(url)` |
+
+Names follow the RubyGems convention: the dash marks a gem that extends another library or
+namespace and maps to the require path (`sqrl-rack` is `sqrl/rack`, `SQRL::Rack`). Bundler's
+auto-require resolves each of them that way, so a plain `gem "..."` line is enough.
 
 All six gems share one version and live in this repository. The implementation plan is in
 [docs/PLAN.md](docs/PLAN.md); per-framework guides are in [docs/integrations](docs/integrations).
