@@ -9,10 +9,16 @@ bin/rails generate sqrl:install
 bin/rails db:migrate
 ```
 
-The generator is idempotent and does five things: copies the migration for
+The generator is idempotent and does six things: copies the migration for
 `sqrl_identities`, `sqrl_nuts` and `sqrl_pending_logins`; mounts the engine at `/sqrl`;
-writes `config/initializers/sqrl.rb`; adds `has_many :sqrl_identities` to `User`; and
-appends `<%= sqrl_login_block %>` to `app/views/sessions/new.html.erb` when it exists.
+writes `config/initializers/sqrl.rb`; adds `has_many :sqrl_identities` to `User`; includes
+the `sqrlonly`/`hardlock` password policies in the generated `SessionsController` and
+`PasswordsController`; and appends `<%= sqrl_login_block %>` to
+`app/views/sessions/new.html.erb` when it exists.
+
+The engine serves `POST /sqrl/cli`, `GET /sqrl/status`, `GET /sqrl/callback`,
+`GET /sqrl/refresh`, `GET /sqrl/sqrl.js`, a stand-alone `GET /sqrl/login` page and
+`GET /sqrl/identities` (list and unlink the signed-in user's identities).
 
 ## Rails 8 `Authentication` concern
 
@@ -40,8 +46,24 @@ when those columns or writers exist. Replace it with `config.sqrl.create_user` w
 model needs more. `:link` attaches the new identity to `Current.user` (or
 `config.sqrl.current_user`); `:refuse` rejects it.
 
+## Account policies
+
+`SQRL::Rails.sqrl_only?(user)` and `hard_locked?(user)` report what the user's SQRL client
+asked for. `SQRL::Rails::PasswordPolicy::Sessions` refuses password login for `sqrlonly`
+users and `PasswordPolicy::Passwords` refuses password reset for `hardlock` users; the
+generator includes both in the Rails 8 generated controllers.
+
 ## Operations
 
-- `bin/rails sqrl:prune` deletes expired nuts and pending logins.
-- Set `config.sqrl.host` in production. `config.sqrl.stores` defaults to ActiveRecord.
+- `bin/rails sqrl:prune` deletes expired nuts and pending logins; `config.sqrl.prune_every`
+  does it opportunistically.
+- Set `config.sqrl.host` in production (or `allowed_hosts` when it must be derived).
+  `config.sqrl.stores` is `:active_record` by default, or `:cache` for an
+  `ActiveSupport::Cache` store with atomic delete, or `:memory` for development.
+- `config.sqrl.rate_limit = { to: 60, within: 1.minute }` throttles the SQRL routes per
+  client IP; `before_issue` / `before_handle` hooks may raise `SQRL::Server::RateLimited`.
 - The engine's `cli` action skips forgery protection; nothing else does.
+- `insecure_http` (loopback-only plain HTTP) and `poll_requires_ip_match` (off by default)
+  behave as described in [docs/security.md](../security.md).
+
+The [gem README](../../gems/sqrl-rails/README.md) has the full option table.

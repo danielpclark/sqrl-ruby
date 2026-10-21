@@ -12,12 +12,20 @@ Routes: `/` (home, shows the login state), `/login` (the SQRL login block), `/pr
 (403 until logged in), `POST /logout`. The SQRL endpoint, status poll, callback and
 script are served by the middleware under `/sqrl/`.
 
-Environment: `SQRL_TLS_KEY`/`SQRL_TLS_CERT`, `SQRL_INSECURE_HTTP`, `SQRL_HOST` (public host for `sqrl://` URLs), `SQRL_ASK=1`, `SQRL_SIN=1`,
+Environment: `SQRL_TLS_KEY`/`SQRL_TLS_CERT`, `SQRL_INSECURE_HTTP`, `SQRL_HOST` (public host
+for `sqrl://` URLs), `SESSION_SECRET`, `SQRL_ASK=1`, `SQRL_SIN=1`,
 `SQRL_UNKNOWN_IDENTITY=create|link|refuse`, `SQRL_IGNORE_IP=1`.
 
 Roda's own `sessions` plugin is not used because the SQRL middleware runs before the
 routing tree; a Rack session middleware (`Rack::Session::Cookie` here) provides the
 session the middleware binds logins to.
+
+## Logging in with the browser extension
+
+Install the [SQRL Login extension](https://github.com/danielpclark/SQRL-extension) (Chrome
+Web Store or Firefox Add-ons), create an identity, open the login page and click "Sign in
+with SQRL". The extension needs either HTTPS (`SQRL_TLS_KEY`/`SQRL_TLS_CERT`; accept the
+self-signed certificate in the browser once) or, on `localhost` only, `SQRL_INSECURE_HTTP=1`.
 
 ## TLS, `sqrl://` and plain http
 

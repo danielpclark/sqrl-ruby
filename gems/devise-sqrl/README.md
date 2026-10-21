@@ -40,6 +40,7 @@ end
 | `GET  /users/sqrl/sqrl.js` | the browser-side script |
 | `GET  /users/sqrl/refresh` | a fresh login URL for the page (JSON) |
 | `GET  /users/sqrl/identities` | the signed-in user's identities, with Unlink |
+| `DELETE /users/sqrl/identities/:id` | unlink one identity |
 
 ## How a login completes
 
@@ -76,11 +77,12 @@ Protocol and storage settings live in `Rails.application.config.sqrl` (see
 
 ```ruby
 Devise.setup do |config|
-  config.sqrl_on_unknown_identity = :create   # :create (default), :link or :refuse
+  config.sqrl_on_unknown_identity = :create   # :create, :link or :refuse; nil (default) defers to config.sqrl (:create)
   config.sqrl_create_resource = ->(identity, klass) { klass.new(email: "...", password: SecureRandom.hex(32)) }
   config.sqrl_remember_me = false             # treat SQRL logins as "remember me"
   config.sqrl_login_block = { link_text: "Sign in with SQRL" }
   config.sqrl_failure_path = nil              # default: the scope's SQRL login page
+  config.sqrl_only_blocked_strategies = [:database_authenticatable]   # refused for sqrlonly users
 end
 ```
 
@@ -145,10 +147,14 @@ under the Devise scope.
 The [sqrl-client](../sqrl-client) gem logs in without a browser:
 
 ```ruby
-agent = SQRL::Client::Agent.new(identity: SQRL::Client::Identity.ephemeral)
-result = agent.login("http://127.0.0.1:3000/users/sign_in")
+transport = SQRL::Client::Transport.new(ca_file: "cert.pem")   # the certificate you gave bin/dev via SQRL_TLS_CERT
+agent  = SQRL::Client::Agent.new(identity: SQRL::Client::Identity.ephemeral, transport: transport)
+result = agent.login("https://127.0.0.1:3000/users/sign_in")
 result.authenticated? # => true; result.cookies carries the Devise session
 ```
+
+Against a server started with `SQRL_INSECURE_HTTP=1` (plain http on localhost), use
+`Agent.new(identity:, insecure: true)` and an `http://` URL instead.
 
 See [`examples/devise-app`](../../examples/devise-app) for a complete application;
 `bundle exec rake spec:devise-sqrl` runs this gem's specs against an in-gem dummy app.

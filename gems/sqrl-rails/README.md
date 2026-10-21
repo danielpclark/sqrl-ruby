@@ -27,6 +27,8 @@ The generator:
 - mounts the engine: `mount SQRL::Rails::Engine, at: "/sqrl", as: :sqrl`;
 - writes `config/initializers/sqrl.rb` (every option documented inline);
 - adds `has_many :sqrl_identities` to `app/models/user.rb`;
+- includes `SQRL::Rails::PasswordPolicy::Sessions` / `::Passwords` in the generated
+  `SessionsController` and `PasswordsController` when they exist (see "Account policies");
 - appends `<%= sqrl_login_block %>` to `app/views/sessions/new.html.erb` when that view
   exists (the Rails 8 generated login form).
 
@@ -92,7 +94,8 @@ is an `SQRL::Server::Identity` (`idk_b64`, `user_ref`, `disabled?`, …).
 ## Helpers
 
 In views: `sqrl_login_block(return_to:, cancel_url:, link_user:, script:, **login_block_options)`,
-`sqrl_login_url`, `sqrl_qr_svg`, `sqrl_script_tag`, `sqrl_status_path`, `sqrl_script_path`.
+`sqrl_login_url`, `sqrl_qr_svg`, `sqrl_script_tag`, `sqrl_status_path`, `sqrl_script_path`,
+`sqrl_refresh_path`, `sqrl_identities_path`.
 In controllers: `current_sqrl_identity`, `sqrl_authenticated?`, `sqrl_logout!`
 (call it from your sign-out action), `sqrl_endpoint`.
 

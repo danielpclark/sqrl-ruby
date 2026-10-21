@@ -17,7 +17,9 @@ bin/rails db:migrate
 
 `devise_for :users` then provides `GET /users/sqrl` (a stand-alone login page),
 `POST /users/sqrl/cli` (the SQRL endpoint, exempt from forgery protection),
-`GET /users/sqrl/status`, `GET /users/sqrl/callback` and `GET /users/sqrl/sqrl.js`.
+`GET /users/sqrl/status`, `GET /users/sqrl/callback`, `GET /users/sqrl/refresh`,
+`GET /users/sqrl/sqrl.js`, and `GET /users/sqrl/identities` with
+`DELETE /users/sqrl/identities/:id` for managing linked identities.
 The generator appends `<%= render "devise/shared/sqrl", resource_name: resource_name %>`
 to `devise/sessions/new.html.erb`, so the password form and the SQRL block live on the
 same page.
@@ -34,14 +36,23 @@ rememberable and the other Devise hooks therefore behave exactly as for a passwo
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `config.sqrl_on_unknown_identity` | `:create` | `:create` a resource, `:link` to the signed-in resource, or `:refuse` |
-| `config.sqrl_create_resource` | `SQRL::Rails::UserFactory` | `(identity, mapping) -> resource` |
+| `config.sqrl_on_unknown_identity` | `nil` (defers to `config.sqrl.on_unknown_identity`, `:create`) | `:create` a resource, `:link` to the signed-in resource, or `:refuse` |
+| `config.sqrl_create_resource` | `SQRL::Rails::UserFactory` | `(identity, resource_class) -> resource` |
 | `config.sqrl_remember_me` | `false` | set the remember-me cookie on SQRL sign-in |
 | `config.sqrl_login_block` | `{}` | options for the rendered login block |
 | `config.sqrl_failure_path` | the SQRL login page | where a refused callback redirects |
+| `config.sqrl_only_blocked_strategies` | `[:database_authenticatable]` | Warden strategies refused for `sqrlonly` users |
 
-Protocol options (`host`, `require_ip_match`, `ask`, `sin`, stores) come from
-`Rails.application.config.sqrl`, exactly as for `sqrl-rails`.
+Protocol options (`host`, `insecure_http`, `require_ip_match`, `poll_requires_ip_match`,
+`ask`, `sin`, `rate_limit`, hooks, stores) come from `Rails.application.config.sqrl`,
+exactly as for `sqrl-rails`.
+
+## Account policies
+
+A user whose identity asked for `sqrlonly` can no longer sign in through Devise's password
+strategy (`devise.failure.sqrl_only`); one whose identity asked for `hardlock` cannot
+request or perform a password reset (`errors.messages.sqrl_hard_locked`). SQRL logins,
+remember-me cookies and restored sessions are unaffected.
 
 ## Model API
 

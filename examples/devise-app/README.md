@@ -28,12 +28,19 @@ the login), `SQRL_SIN=1` (send a secret-index challenge).
 
 Routes added by Devise for `:sqrl_authenticatable`: `GET /users/sqrl`,
 `POST /users/sqrl/cli` (protocol endpoint), `GET /users/sqrl/status`,
-`GET /users/sqrl/callback`, `GET /users/sqrl/sqrl.js`, `GET /users/sqrl/identities`
-(manage linked identities), `DELETE /users/sqrl/identities/:id`.
+`GET /users/sqrl/callback`, `GET /users/sqrl/refresh`, `GET /users/sqrl/sqrl.js`,
+`GET /users/sqrl/identities` (manage linked identities), `DELETE /users/sqrl/identities/:id`.
 
 Account policies: a user whose SQRL client asked for `sqrlonly` cannot log in with a
 password (Devise's password strategy is refused with "This account signs in with SQRL
 only."), and one who asked for `hardlock` cannot request or perform a password reset.
+
+## Logging in with the browser extension
+
+Install the [SQRL Login extension](https://github.com/danielpclark/SQRL-extension) (Chrome
+Web Store or Firefox Add-ons), create an identity, open the login page and click "Sign in
+with SQRL". The extension needs either HTTPS (`SQRL_TLS_KEY`/`SQRL_TLS_CERT`; accept the
+self-signed certificate in the browser once) or, on `localhost` only, `SQRL_INSECURE_HTTP=1`.
 
 ## TLS, `sqrl://` and plain http
 

@@ -9,7 +9,15 @@ bin/dev            # http://localhost:9393/
 
 Routes: `/`, `/login`, `/protected` (403 until logged in), `POST /logout`. The same
 environment variables as `examples/rack-app` apply (`SQRL_HOST`, `SESSION_SECRET`,
-`SQRL_UNKNOWN_IDENTITY`, `SQRL_IGNORE_IP`). Identities are kept in memory.
+`SQRL_UNKNOWN_IDENTITY`, `SQRL_IGNORE_IP`, `SQRL_ASK`, `SQRL_SIN`,
+`SQRL_TLS_KEY`/`SQRL_TLS_CERT`, `SQRL_INSECURE_HTTP`). Identities are kept in memory.
+
+## Logging in with the browser extension
+
+Install the [SQRL Login extension](https://github.com/danielpclark/SQRL-extension) (Chrome
+Web Store or Firefox Add-ons), create an identity, open the login page and click "Sign in
+with SQRL". The extension needs either HTTPS (`SQRL_TLS_KEY`/`SQRL_TLS_CERT`; accept the
+self-signed certificate in the browser once) or, on `localhost` only, `SQRL_INSECURE_HTTP=1`.
 
 ## TLS, `sqrl://` and plain http
 

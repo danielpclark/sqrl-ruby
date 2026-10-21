@@ -22,13 +22,20 @@ Environment variables: `PORT`, `BIND`, `SQRL_TLS_KEY`/`SQRL_TLS_CERT`, `SQRL_INS
 the login), `SQRL_SIN=1` (send a secret-index challenge).
 
 Useful routes: `/sqrl/login` (stand-alone SQRL page), `POST /sqrl/cli` (protocol
-endpoint), `/sqrl/status`, `/sqrl/callback`, `/sqrl/sqrl.js`, `/sqrl/identities`
-(the signed-in user's SQRL identities, with an Unlink button).
+endpoint), `/sqrl/status`, `/sqrl/callback`, `/sqrl/refresh`, `/sqrl/sqrl.js`,
+`/sqrl/identities` (the signed-in user's SQRL identities, with an Unlink button).
 
 Account policies: the generator added `SQRL::Rails::PasswordPolicy::Sessions` to
 `SessionsController` and `::Passwords` to `PasswordsController`, so a user whose SQRL
 client asked for `sqrlonly` cannot log in with a password, and one who asked for
 `hardlock` cannot reset it.
+
+## Logging in with the browser extension
+
+Install the [SQRL Login extension](https://github.com/danielpclark/SQRL-extension) (Chrome
+Web Store or Firefox Add-ons), create an identity, open the login page and click "Sign in
+with SQRL". The extension needs either HTTPS (`SQRL_TLS_KEY`/`SQRL_TLS_CERT`; accept the
+self-signed certificate in the browser once) or, on `localhost` only, `SQRL_INSECURE_HTTP=1`.
 
 ## TLS, `sqrl://` and plain http
 

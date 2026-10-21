@@ -40,7 +40,11 @@ task :build do
   end
 end
 
-desc "Check that every gem builds cleanly and that the tag would match the version"
+desc "Check that every gem builds cleanly and, when GITHUB_REF_NAME is set, that the tag matches SQRL::VERSION"
 task release_check: :build do
   Dir["pkg/*.gem"].each { |g| puts "built #{g}" }
+  tag = ENV.fetch("GITHUB_REF_NAME", nil)
+  if tag && tag != "v#{SQRL::VERSION}"
+    abort "tag #{tag} does not match SQRL::VERSION #{SQRL::VERSION}"
+  end
 end

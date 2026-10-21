@@ -24,7 +24,7 @@ that logs in to SQRL-enabled websites from scripts and test suites.
 | Gem | Version | Downloads | Require | Use it when | Quick start |
 | --- | --- | --- | --- | --- | --- |
 | [`sqrl-core`](gems/sqrl-core) | [![Gem Version](https://img.shields.io/gem/v/sqrl-core?logo=rubygems&logoColor=white)](https://rubygems.org/gems/sqrl-core) | [![Downloads](https://img.shields.io/gem/dt/sqrl-core)](https://rubygems.org/gems/sqrl-core) | `require "sqrl/core"` (or `"sqrl"`) | you need the protocol, the cryptography or the identity formats directly | `SQRL::Session`, `SQRL::Server::Handler`, `SQRL::S4Identity` |
-| [`sqrl-rack`](gems/sqrl-rack) | [![Gem Version](https://img.shields.io/gem/v/sqrl-rack?logo=rubygems&logoColor=white)](https://rubygems.org/gems/sqrl-rack) | [![Downloads](https://img.shields.io/gem/dt/sqrl-rack)](https://rubygems.org/gems/sqrl-rack) | `require "sqrl/rack"` | a Rack application or Sinatra | `use SQRL::Rack::Middleware` / `register Sinatra::SQRL` |
+| [`sqrl-rack`](gems/sqrl-rack) | [![Gem Version](https://img.shields.io/gem/v/sqrl-rack?logo=rubygems&logoColor=white)](https://rubygems.org/gems/sqrl-rack) | [![Downloads](https://img.shields.io/gem/dt/sqrl-rack)](https://rubygems.org/gems/sqrl-rack) | `require "sqrl/rack"` | Rack, Sinatra or Roda | `use SQRL::Rack::Middleware` / `register Sinatra::SQRL` / `plugin :sqrl` |
 | [`omniauth-sqrl`](gems/omniauth-sqrl) | [![Gem Version](https://img.shields.io/gem/v/omniauth-sqrl?logo=rubygems&logoColor=white)](https://rubygems.org/gems/omniauth-sqrl) | [![Downloads](https://img.shields.io/gem/dt/omniauth-sqrl)](https://rubygems.org/gems/omniauth-sqrl) | `require "omniauth/sqrl"` | you already use OmniAuth | `provider :sqrl` |
 | [`sqrl-rails`](gems/sqrl-rails) | [![Gem Version](https://img.shields.io/gem/v/sqrl-rails?logo=rubygems&logoColor=white)](https://rubygems.org/gems/sqrl-rails) | [![Downloads](https://img.shields.io/gem/dt/sqrl-rails)](https://rubygems.org/gems/sqrl-rails) | `require "sqrl/rails"` | Rails, including the Rails 8 `generate authentication` stack | `bin/rails generate sqrl:install` |
 | [`devise-sqrl`](gems/devise-sqrl) | [![Gem Version](https://img.shields.io/gem/v/devise-sqrl?logo=rubygems&logoColor=white)](https://rubygems.org/gems/devise-sqrl) | [![Downloads](https://img.shields.io/gem/dt/devise-sqrl)](https://rubygems.org/gems/devise-sqrl) | `require "devise/sqrl"` | Devise | `devise :sqrl_authenticatable` |
@@ -50,10 +50,15 @@ All six gems share one version and live in this repository. Per-framework guides
   test vector. Everything is built on Ruby's bundled `openssl` gem; the core has no other
   runtime dependency.
 - A server engine whose state sits behind nut, identity and pending-login store interfaces
-  (in-memory and ActiveRecord implementations), with nut single use, IP matching, browser
-  session binding and one-time CPS tokens.
+  (in-memory, Redis, ActiveRecord and `ActiveSupport::Cache` implementations, all checked by
+  one shared store-contract spec), with nut single use, IP matching, browser session
+  binding, one-time CPS tokens, rate-limit and prune hooks and host allow-listing.
+- Account policies surfaced to applications: `sqrlonly` refuses password login and
+  `hardlock` refuses password recovery in the Rails 8 and Devise integrations, and users can
+  list and unlink their SQRL identities.
 - A browser script (`sqrl.js`) that performs the standard same-device probe on
-  `localhost:25519` and polls for logins from another device, plus server-side QR codes.
+  `localhost:25519`, polls for logins from another device and fetches a fresh code when one
+  expires, plus server-side QR codes.
 - A bot client with login-page discovery, a cookie-carrying transport, a Capybara helper, a
   command-line tool and a 23-case conformance suite.
 
@@ -82,13 +87,25 @@ your own server.
 ```sh
 bundle install
 bundle exec rake spec:gems          # every gem's specs
-bundle exec rake spec:integration   # boots each example app and drives it with the bot client and a headless browser
-bundle exec rspec spec/interop      # the conformance suite against the Rust reference server (needs its binary)
+bundle exec rake spec:integration   # boots each example app over HTTPS and drives it with the bot client and a headless browser
+bundle exec rspec spec/interop      # the conformance suite against the Rust reference server
+bundle exec rubocop                 # lint (enforced in CI)
+bundle exec rake build              # packages the six gems into pkg/; `rake release_check` lists them
 ```
 
 Each application under [`examples/`](examples) is a complete, independently bundled
-application of its framework (`bin/dev` starts it). The integration specs start every one of
-them on a free port and run the conformance suite, bot flows and browser flows against it.
+application of its framework (`bin/dev` starts it). Run `bundle install` inside each one
+before the integration specs: they start every example on a free port with its own bundle
+and run the conformance suite, bot flows and browser flows against it, twice (the second
+time with `ask` and `sin` enabled).
+
+What the suites need: a Chromium binary for the browser flows (`BROWSER_PATH`, or the
+Playwright Chromium that CI installs), the Rust toolchain and a checkout of
+`SQRL-extension` for the interop run (`SQRL_RUST_TEST_SERVER` points at the built
+`sqrl-test-server`; the specs skip without it), and optionally a local `redis-server` for
+the Redis store specs (they also run against an in-process double). `gemfiles/` holds the
+Rails 7.1, 7.2 and 8.0 bundles that CI runs `sqrl-rails` and `devise-sqrl` against.
+Deferred work and ideas are tracked as GitHub issues.
 
 Ruby 3.1 or newer for `sqrl-core`, `sqrl-rack`, `omniauth-sqrl` and `sqrl-client`;
 Ruby 3.2 or newer for `sqrl-rails` and `devise-sqrl`. One EnScrypt iteration takes about
