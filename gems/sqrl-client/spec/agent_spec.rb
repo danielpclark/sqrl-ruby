@@ -155,14 +155,19 @@ RSpec.describe SQRL::Client::Agent do
     end
   end
 
-  it "recovers from a transient error with a fresh query" do
+  it "retries a transient error once, then stops when the error repeats (stale login page)" do
     id = ephemeral("jack")
     page = SQRL::Client::Transport.new(allow_http: :loopback).get(site.login_url)
     url = page.body[/data-sqrl-url="([^"]+)"/, 1].gsub("&amp;", "&")
     stale = url.sub(/nut=[^&]+/, "nut=bogus")
-    result = new_agent(id, poll: false).login(stale)
-    expect(result).to be_authenticated
-    expect(result.tif_history.first).to be_transient_error
+    # The test site keeps its state by reference, so the retry fails exactly like the first
+    # attempt; two identical TIFs mean the page has expired (Gibson, grc.sqrl:23543).
+    expect { new_agent(id, poll: false, max_transient_retries: 5).login(stale) }
+      .to raise_error(SQRL::Client::LoginFailed) do |e|
+        expect(e.reason).to eq(:transient)
+        expect(e.message).to include("refresh the page")
+        expect(e.tif).to be_transient_error
+      end
   end
 
   it "gives up after too many transient errors" do

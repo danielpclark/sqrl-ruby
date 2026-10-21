@@ -88,6 +88,26 @@ RSpec.describe SQRL::Rack::Middleware do
       expect(browser.last_response.body).to eq(session.idk_b64) # still logged in
     end
 
+    it "is never completable through the browser poll (the url= token is the only way in)" do
+      browser = new_browser
+      url = visit_login(browser)
+      session = sqrl_login(new_client, url, cps: true)
+      expect(session.cps_url).not_to be_nil
+      # A spoofed login page that keeps polling must not be signed in: "the web server ... MUST
+      # NOT authenticate the browser session upon successful authentication" (On The Wire, url=).
+      browser.get("/sqrl/status")
+      expect(JSON.parse(browser.last_response.body)).to eq("authenticated" => false)
+      browser.get("/sqrl/callback")
+      expect(browser.last_response.status).to eq(403)
+      browser.get("/who")
+      expect(browser.last_response.body).to eq("anonymous")
+      # the token still works, once, in that browser
+      browser.get(session.cps_url.sub("https://example.com", ""))
+      expect(browser.last_response.status).to eq(303)
+      browser.get("/who")
+      expect(browser.last_response.body).to eq(session.idk_b64)
+    end
+
     it "refuses a token claimed by a browser that did not start the login" do
       browser = new_browser
       url = visit_login(browser)

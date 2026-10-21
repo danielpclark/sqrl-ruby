@@ -30,7 +30,10 @@ RSpec.describe "protocol flows" do
     expect(r.identity.idk).to eq(s.idk)
     expect(s.state).to eq(SQRL::Session::State.new(kind: :known, disabled: false))
     expect(handler.stores.pending_logins.find(sid).authenticated_idk).to eq(s.idk)
-    expect(handler.status(sid)).to eq(authenticated: true, idk: s.idk_b64)
+    # CPS: the browser that started the login is not signed in by the server; only the
+    # browser the client redirects to the url= token is.
+    expect(handler.stores.pending_logins.find(sid)).to be_cps
+    expect(handler.status(sid)).to eq(authenticated: false, idk: nil)
     cps = s.cps_url
     expect(cps).to eq(r.cps_url)
     expect(cps).to start_with("https://example.com/sqrl/callback?t=")
@@ -140,6 +143,7 @@ RSpec.describe "protocol flows" do
     expect(i.body).to include("&pids=", "&urs=")
     r = exchange(handler, s, i)
     expect(r.tif).to be_id_match
+    expect(r.tif).not_to be_previous_id_match # the TIF describes the account after the update
     expect(r.tif).not_to be_error
     expect(r.rekeyed_from).to eq(old_idk)
     expect(r).to be_rekeyed
@@ -152,6 +156,7 @@ RSpec.describe "protocol flows" do
     _, s = new_session(handler, old)
     r = exchange(handler, s, s.query)
     expect(r.tif).to be_identity_superseded
+    expect(r.tif.to_hex).to eq("240") # exactly, per "Handling Superseded Identities"
     expect(s.state).to eq(:superseded)
 
     # The new identity logs in normally from now on, without re-keying.
@@ -342,20 +347,22 @@ RSpec.describe "protocol flows" do
     expect(r).not_to be_authenticated
   end
 
-  it "recovers from a transient error with a fresh query" do
+  it "answers a stale nut with the same transient error twice (the client's cue to refresh)" do
     handler = new_handler
     id = identity(14)
     _, s = new_session(handler, id)
     q = s.query
-    # Replay the same request twice: the second use of the nut is a transient error.
     s.feed(post(handler, q).body)
     r2 = handler.handle(nut: "nope", body: q.body, ip: FlowHelpers::IP)
     expect(r2.tif).to be_transient_error
     s.feed(r2.body)
     expect(s.state).to eq(:transient)
-    # A new query built on that response works.
+    # This server keeps its state by reference, so the browser session behind the stale nut is
+    # gone: the retry with the fresh nut must fail with exactly the same TIF, never log the
+    # client in to a pending login no browser owns.
     r = exchange(handler, s, s.query)
-    expect(r.tif).not_to be_error
+    expect(r.tif).to eq(r2.tif)
+    expect(s.state).to eq(:transient)
   end
 
   it "treats a reused nut as a transient error" do
