@@ -115,6 +115,23 @@ RSpec.describe SQRL::Crypto do
     end
   end
 
+  describe "DER-built keys (openssl gems without the raw-key API)" do
+    before { skip "the openssl gem has no raw-key API to compare against" unless described_class::RAW_KEY_API }
+
+    it "matches the keys built through OpenSSL::PKey.new_raw_private_key / new_raw_public_key" do
+      prefixes = described_class.const_get(:DER_PREFIXES)
+      %w[ED25519 X25519].each do |type|
+        secret = OpenSSL::Random.random_bytes(32)
+        via_raw = OpenSSL::PKey.new_raw_private_key(type, secret)
+        via_der = OpenSSL::PKey.read(prefixes.fetch(type)[:private] + secret)
+        expect(via_der.private_to_der).to eq(via_raw.private_to_der)
+        expect(via_der.public_to_der[-32, 32]).to eq(via_raw.raw_public_key)
+        expect(OpenSSL::PKey.read(prefixes.fetch(type)[:public] + via_raw.raw_public_key).public_to_der)
+          .to eq(via_raw.public_to_der)
+      end
+    end
+  end
+
   describe "X25519" do
     it "agrees both ways and matches the RFC 7748 base-point vector" do
       a = "\x01" * 32

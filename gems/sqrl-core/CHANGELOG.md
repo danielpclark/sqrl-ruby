@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 — 2026-10-20
+
+- Fixed: Ed25519 and X25519 keys are built from their DER encodings when the openssl gem
+  has no `OpenSSL::PKey.new_raw_private_key` / `new_raw_public_key` (openssl 3.0 and 3.1,
+  bundled with Ruby 3.1 and 3.2). 0.1.0 raised `NoMethodError` on those Rubies as soon as
+  an identity was derived, signed or verified.
+
 ## 0.1.0 — 2026-10-20
 
 First release.
