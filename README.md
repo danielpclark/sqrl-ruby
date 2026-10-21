@@ -1,3 +1,19 @@
+<p align="center">
+  <a href="https://github.com/danielpclark/sqrl-ruby"><img src="docs/assets/banner.svg" alt="SQRL Login for Ruby" width="100%"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/danielpclark/sqrl-ruby/actions/workflows/ci.yml"><img src="https://github.com/danielpclark/sqrl-ruby/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://github.com/danielpclark/sqrl-ruby/actions/workflows/release.yml"><img src="https://github.com/danielpclark/sqrl-ruby/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/danielpclark/sqrl-ruby?color=blue" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/ruby-%E2%89%A5%203.1-CC342D?logo=ruby&logoColor=white" alt="Ruby 3.1 or newer">
+  <img src="https://img.shields.io/maintenance/yes/2026" alt="Maintained">
+  <a href="https://github.com/danielpclark/sqrl-ruby/commits/main"><img src="https://img.shields.io/github/last-commit/danielpclark/sqrl-ruby/main" alt="Last commit"></a>
+  <a href="https://github.com/danielpclark/sqrl-ruby/issues"><img src="https://img.shields.io/github/issues/danielpclark/sqrl-ruby" alt="Open issues"></a>
+  <a href="https://rubocop.org"><img src="https://img.shields.io/badge/code%20style-rubocop-brightgreen?logo=rubocop&logoColor=white" alt="Code style: RuboCop"></a>
+  <a href="https://www.grc.com/sqrl/sqrl.htm"><img src="https://img.shields.io/badge/SQRL-specification-007CC3" alt="SQRL specification"></a>
+</p>
+
 # SQRL Login for Ruby
 
 [SQRL](https://www.grc.com/sqrl/sqrl.htm) (Secure Quick Reliable Login) for the Ruby
@@ -5,14 +21,14 @@ ecosystem: a pure-Ruby protocol core, server-side integrations that give existin
 systems SQRL support with one gem and one line of configuration, and a bot-capable client
 that logs in to SQRL-enabled websites from scripts and test suites.
 
-| Gem | Require | Use it when | Quick start |
-| --- | --- | --- | --- |
-| [`sqrl-core`](gems/sqrl-core) | `require "sqrl/core"` (or `"sqrl"`) | you need the protocol, the cryptography or the identity formats directly | `SQRL::Session`, `SQRL::Server::Handler`, `SQRL::S4Identity` |
-| [`sqrl-rack`](gems/sqrl-rack) | `require "sqrl/rack"` | a Rack application or Sinatra | `use SQRL::Rack::Middleware` / `register Sinatra::SQRL` |
-| [`omniauth-sqrl`](gems/omniauth-sqrl) | `require "omniauth/sqrl"` | you already use OmniAuth | `provider :sqrl` |
-| [`sqrl-rails`](gems/sqrl-rails) | `require "sqrl/rails"` | Rails, including the Rails 8 `generate authentication` stack | `bin/rails generate sqrl:install` |
-| [`devise-sqrl`](gems/devise-sqrl) | `require "devise/sqrl"` | Devise | `devise :sqrl_authenticatable` |
-| [`sqrl-client`](gems/sqrl-client) | `require "sqrl/client"` | bots, automation, tests; checking a server's conformance | `SQRL::Client::Agent.new(identity:).login(url)` |
+| Gem | Version | Downloads | Require | Use it when | Quick start |
+| --- | --- | --- | --- | --- | --- |
+| [`sqrl-core`](gems/sqrl-core) | [![Gem Version](https://img.shields.io/gem/v/sqrl-core?logo=rubygems&logoColor=white)](https://rubygems.org/gems/sqrl-core) | [![Downloads](https://img.shields.io/gem/dt/sqrl-core)](https://rubygems.org/gems/sqrl-core) | `require "sqrl/core"` (or `"sqrl"`) | you need the protocol, the cryptography or the identity formats directly | `SQRL::Session`, `SQRL::Server::Handler`, `SQRL::S4Identity` |
+| [`sqrl-rack`](gems/sqrl-rack) | [![Gem Version](https://img.shields.io/gem/v/sqrl-rack?logo=rubygems&logoColor=white)](https://rubygems.org/gems/sqrl-rack) | [![Downloads](https://img.shields.io/gem/dt/sqrl-rack)](https://rubygems.org/gems/sqrl-rack) | `require "sqrl/rack"` | a Rack application or Sinatra | `use SQRL::Rack::Middleware` / `register Sinatra::SQRL` |
+| [`omniauth-sqrl`](gems/omniauth-sqrl) | [![Gem Version](https://img.shields.io/gem/v/omniauth-sqrl?logo=rubygems&logoColor=white)](https://rubygems.org/gems/omniauth-sqrl) | [![Downloads](https://img.shields.io/gem/dt/omniauth-sqrl)](https://rubygems.org/gems/omniauth-sqrl) | `require "omniauth/sqrl"` | you already use OmniAuth | `provider :sqrl` |
+| [`sqrl-rails`](gems/sqrl-rails) | [![Gem Version](https://img.shields.io/gem/v/sqrl-rails?logo=rubygems&logoColor=white)](https://rubygems.org/gems/sqrl-rails) | [![Downloads](https://img.shields.io/gem/dt/sqrl-rails)](https://rubygems.org/gems/sqrl-rails) | `require "sqrl/rails"` | Rails, including the Rails 8 `generate authentication` stack | `bin/rails generate sqrl:install` |
+| [`devise-sqrl`](gems/devise-sqrl) | [![Gem Version](https://img.shields.io/gem/v/devise-sqrl?logo=rubygems&logoColor=white)](https://rubygems.org/gems/devise-sqrl) | [![Downloads](https://img.shields.io/gem/dt/devise-sqrl)](https://rubygems.org/gems/devise-sqrl) | `require "devise/sqrl"` | Devise | `devise :sqrl_authenticatable` |
+| [`sqrl-client`](gems/sqrl-client) | [![Gem Version](https://img.shields.io/gem/v/sqrl-client?logo=rubygems&logoColor=white)](https://rubygems.org/gems/sqrl-client) | [![Downloads](https://img.shields.io/gem/dt/sqrl-client)](https://rubygems.org/gems/sqrl-client) | `require "sqrl/client"` | bots, automation, tests; checking a server's conformance | `SQRL::Client::Agent.new(identity:).login(url)` |
 
 Names follow the RubyGems convention: the dash marks a gem that extends another library or
 namespace and maps to the require path (`sqrl-rack` is `sqrl/rack`, `SQRL::Rack`). Bundler's
@@ -63,7 +79,8 @@ ephemeral identities that skip EnScrypt.
 ## Credits and license
 
 SQRL was designed by Steve Gibson of Gibson Research Corporation, who published the
-specification into the public domain. The protocol and cryptography here are a port of the
+specification, and the official logo used in the banner above, into the public domain
+(<https://www.grc.com/sqrl/logo.htm>). The protocol and cryptography here are a port of the
 Rust implementation in [SQRL-extension](https://github.com/danielpclark/SQRL-extension).
 
 MIT License, Copyright (c) 2026 Daniel P. Clark. See [LICENSE](LICENSE).
