@@ -34,10 +34,9 @@ Names follow the RubyGems convention: the dash marks a gem that extends another 
 namespace and maps to the require path (`sqrl-rack` is `sqrl/rack`, `SQRL::Rack`). Bundler's
 auto-require resolves each of them that way, so a plain `gem "..."` line is enough.
 
-All six gems share one version and live in this repository. The implementation plan is in
-[docs/PLAN.md](docs/PLAN.md); per-framework guides are in [docs/integrations](docs/integrations);
-the threat model and deployment checklist are in [docs/security.md](docs/security.md) and the
-protocol summary in [docs/protocol.md](docs/protocol.md).
+All six gems share one version and live in this repository. Per-framework guides are in
+[docs/integrations](docs/integrations); the threat model and deployment checklist are in
+[docs/security.md](docs/security.md) and the protocol summary in [docs/protocol.md](docs/protocol.md).
 
 ## What is implemented
 
@@ -57,6 +56,26 @@ protocol summary in [docs/protocol.md](docs/protocol.md).
   `localhost:25519` and polls for logins from another device, plus server-side QR codes.
 - A bot client with login-page discovery, a cookie-carrying transport, a Capybara helper, a
   command-line tool and a 23-case conformance suite.
+
+## Using and testing with the SQRL browser extension
+
+To log in to a site built with these gems from a desktop browser, install the **SQRL Login**
+extension, a complete SQRL client written in Rust and compiled to WebAssembly, with
+identities kept locally and the same-device handoff (Client Provided Session) built in:
+
+- Chrome, Edge and Brave: [Chrome Web Store](https://chromewebstore.google.com/detail/fimbniikombkehgjnfoamijogcafnpff?utm_source=item-share-cb)
+- Firefox: [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/sqrl-login/)
+- Source: [danielpclark/SQRL-extension](https://github.com/danielpclark/SQRL-extension)
+
+Create an identity in the extension, open the login page of any of the
+[example applications](examples) (each `bin/dev` explains how to serve it over HTTPS, which
+real SQRL clients require), and click "Sign in with SQRL". The extension performs the
+protocol and sends the tab straight to the logged-in page. The same extension works against
+GRC's demo site, so you can compare behaviour with the reference implementation.
+
+For automated testing without a browser, use [`sqrl-client`](gems/sqrl-client): it performs the
+same logins from scripts and test suites and ships a conformance suite you can run against
+your own server.
 
 ## Development
 
