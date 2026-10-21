@@ -9,12 +9,22 @@ bin/dev            # http://localhost:9292/
 ```
 
 Routes: `/` (home, shows login state), `/login` (QR, link and `sqrl.js`), `/protected`
-(403 until logged in), `POST /logout`. On `localhost` over plain http the middleware
+(403 until logged in), `POST /logout`. The middleware serves `/sqrl/cli`, `/sqrl/status`,
+`/sqrl/callback`, `/sqrl/refresh` and `/sqrl/sqrl.js`.
 
-Environment: `SQRL_TLS_KEY`/`SQRL_TLS_CERT`, `SQRL_INSECURE_HTTP`, `SQRL_HOST` (public host in `sqrl://` URLs), `SESSION_SECRET`,
-`SQRL_UNKNOWN_IDENTITY` (`create`, `link` or `refuse`), `SQRL_IGNORE_IP` (set to disable
-the IP match check, for proxies in development). Identities live in memory and vanish
-when the process stops.
+Environment: `SQRL_TLS_KEY`/`SQRL_TLS_CERT`, `SQRL_INSECURE_HTTP`, `SQRL_HOST` (public host
+in `sqrl://` URLs), `SESSION_SECRET`, `SQRL_UNKNOWN_IDENTITY` (`create`, `link` or
+`refuse`), `SQRL_IGNORE_IP` (set to disable the IP match check, for proxies in
+development), `SQRL_ASK=1` (pose an Allow/Deny question; Deny refuses the login),
+`SQRL_SIN=1` (send a secret-index challenge). Identities live in memory and vanish when
+the process stops.
+
+## Logging in with the browser extension
+
+Install the [SQRL Login extension](https://github.com/danielpclark/SQRL-extension) (Chrome
+Web Store or Firefox Add-ons), create an identity, open the login page and click "Sign in
+with SQRL". The extension needs either HTTPS (`SQRL_TLS_KEY`/`SQRL_TLS_CERT`; accept the
+self-signed certificate in the browser once) or, on `localhost` only, `SQRL_INSECURE_HTTP=1`.
 
 ## TLS, `sqrl://` and plain http
 

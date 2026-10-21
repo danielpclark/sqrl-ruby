@@ -1,6 +1,6 @@
 # sqrl-rack
 
-SQRL login for Rack applications and Sinatra: a middleware that mounts the SQRL endpoint,
+SQRL login for Rack applications, Sinatra and Roda: a middleware that mounts the SQRL endpoint,
 the browser's status poll and the login callback; a Sinatra extension with view helpers;
 the browser-side `sqrl.js`; and QR code rendering. Built on
 [`sqrl-core`](../sqrl-core).
@@ -32,9 +32,10 @@ run ->(env) {
 
 The middleware serves `POST /sqrl/cli` (the SQRL protocol endpoint), `GET /sqrl/status`
 (cookie-bound JSON poll), `GET /sqrl/callback` (login completion, with or without a CPS
-token) and `GET /sqrl/sqrl.js`. Everything else gets `env["sqrl.server"]`, a
-`SQRL::Rack::Facade` with `login_url`, `login_block`, `script_tag`, `qr_svg`,
-`identity`, `authenticated?` and `logout!`.
+token), `GET /sqrl/refresh` (a fresh login URL for the page) and `GET /sqrl/sqrl.js`.
+Everything else gets `env["sqrl.server"]`, a `SQRL::Rack::Facade` with `login_url`,
+`login_block`, `script_tag`, `qr_svg`, `refresh_url`, `identity`, `authenticated?` and
+`logout!`.
 
 Every `SQRL::Server::Config` option is accepted (`on_unknown_identity`, `ask`, `sin`,
 `require_ip_match`, `nut_ttl`, `cps_token_ttl`, ...). Without `host:` the request host is
@@ -179,8 +180,9 @@ element dispatches `sqrl:cps-detected`, `sqrl:authenticated` (`detail.next`),
 5. The middleware stores the identity in the session, runs `on_login`, and redirects to the
    pending login's `return_to` or `after_login`.
 
-See [`examples/rack-app`](../../examples/rack-app) and
-[`examples/sinatra-app`](../../examples/sinatra-app). and [`examples/roda-app`](../../examples/roda-app).
+See [`examples/rack-app`](../../examples/rack-app),
+[`examples/sinatra-app`](../../examples/sinatra-app) and
+[`examples/roda-app`](../../examples/roda-app).
 
 ## Testing
 

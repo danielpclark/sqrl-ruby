@@ -18,9 +18,17 @@ app renders the token from Rack::Protection (enabled by Sinatra's sessions) into
 form, so the default protection stays on. Rails applications get the same from the
 `omniauth-rails_csrf_protection` gem.
 
-Environment: `SQRL_TLS_KEY`/`SQRL_TLS_CERT`, `SQRL_INSECURE_HTTP`, `SQRL_HOST` (public host placed in `sqrl://` URLs; defaults to the request
-host), `SESSION_SECRET`, `SQRL_UNKNOWN_IDENTITY` (`create`, `link` or `refuse`),
-`SQRL_IGNORE_IP`. Identities are kept in memory.
+Environment: `SQRL_TLS_KEY`/`SQRL_TLS_CERT`, `SQRL_INSECURE_HTTP`, `SQRL_HOST` (public host
+placed in `sqrl://` URLs; defaults to the request host), `SESSION_SECRET`,
+`SQRL_UNKNOWN_IDENTITY` (`create`, `link` or `refuse`), `SQRL_IGNORE_IP`, `SQRL_ASK=1`,
+`SQRL_SIN=1`. Identities are kept in memory.
+
+## Logging in with the browser extension
+
+Install the [SQRL Login extension](https://github.com/danielpclark/SQRL-extension) (Chrome
+Web Store or Firefox Add-ons), create an identity, open the login page and click "Sign in
+with SQRL". The extension needs either HTTPS (`SQRL_TLS_KEY`/`SQRL_TLS_CERT`; accept the
+self-signed certificate in the browser once) or, on `localhost` only, `SQRL_INSECURE_HTTP=1`.
 
 ## TLS, `sqrl://` and plain http
 

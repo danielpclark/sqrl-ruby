@@ -24,6 +24,7 @@ end
 | `POST /auth/sqrl/cli` | other phase | the SQRL client's protocol endpoint (`query`, `ident`, `disable`, `enable`, `remove`) |
 | `GET /auth/sqrl/status` | other phase | cookie-bound JSON poll used by `sqrl.js` for logins from another device |
 | `GET /auth/sqrl/sqrl.js` | other phase | the browser script |
+| `GET /auth/sqrl/refresh` | other phase | a fresh login URL for the page when a nut expired (JSON) |
 | `GET /auth/sqrl/callback?t=TOKEN` | callback phase | Client Provided Session landing: the one-time token is claimed and the auth hash is built |
 | `GET /auth/sqrl/callback` | callback phase | completion from the poller (the browser's own pending login) |
 
@@ -72,7 +73,11 @@ foreign, reused or expired token) or `sqrl_disabled`.
 | `title:` / `cancel_url:` | "Sign in with SQRL" / the origin | login page title and cancel link |
 | `info:` | `nil` | callable `(identity) -> Hash` to fill `info` |
 | `ip:` | `Rack::Request#ip` | callable resolving the client IP (trusted proxies) |
-| `cli_path:` / `status_path:` / `script_path:` | under the provider prefix | endpoint paths |
+| `cli_path:` / `status_path:` / `script_path:` / `refresh_path:` | under the provider prefix | endpoint paths |
+| `allowed_hosts:` / `host_cache_limit:` | `nil` / 16 | accepted request hosts when `host:` is derived, and how many distinct ones are kept |
+| `before_issue:` / `before_handle:` | `nil` | hooks that may raise `SQRL::Server::RateLimited` (answered with 429) |
+| `prune_every:` | 1000 | opportunistic `prune!` every N requests (`nil` disables) |
+| `logger:` | `nil` | logger for warnings and protocol traces |
 
 ## Devise
 

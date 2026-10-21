@@ -19,8 +19,13 @@ agent.http.get("https://example.com/account")   # same cookie jar, already logge
   tests never need a rescue code or EnScrypt.
 - `SQRL::Client::Capybara.login(page, identity:)` runs the protocol out of band and then has
   the browser visit the CPS URL, so the browser session is the one logged in.
-- The `sqrl-client` executable exposes the same operations and exports cookies in Netscape
-  or JSON format for `curl` and friends.
+- The `sqrl-client` executable exposes the same operations plus identity management
+  (`identity create|import|show|export|rekey|change-password|previous`), takes `--alt-id`,
+  and exports cookies in Netscape or JSON format for `curl` and friends.
+- The agent speaks `sqrl://` over HTTPS only. `insecure: true` (CLI `--insecure`) is a
+  loopback-only testing mode for plain-HTTP sites and `qrl://` links such as the browser
+  extension's test server; a self-signed development certificate is trusted with
+  `Transport.new(ca_file:)` (CLI `--ca-file`), and `--no-verify-tls` disables verification.
 
 ## Conformance suite
 
