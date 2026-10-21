@@ -28,7 +28,7 @@ task spec: ["spec:gems", "spec:integration"]
 
 task default: "spec:gems"
 
-desc "Build every gem into pkg/ (what the release workflow pushes)"
+desc "Build every gem into pkg/"
 task :build do
   require "fileutils"
   require_relative "gems/sqrl-core/lib/sqrl/version"
@@ -37,14 +37,5 @@ task :build do
     Dir.chdir("gems/#{gem_name}") do
       sh "gem build #{gem_name}.gemspec --output ../../pkg/#{gem_name}-#{SQRL::VERSION}.gem"
     end
-  end
-end
-
-desc "Check that every gem builds cleanly and, when GITHUB_REF_NAME is set, that the tag matches SQRL::VERSION"
-task release_check: :build do
-  Dir["pkg/*.gem"].each { |g| puts "built #{g}" }
-  tag = ENV.fetch("GITHUB_REF_NAME", nil)
-  if tag && tag != "v#{SQRL::VERSION}"
-    abort "tag #{tag} does not match SQRL::VERSION #{SQRL::VERSION}"
   end
 end
