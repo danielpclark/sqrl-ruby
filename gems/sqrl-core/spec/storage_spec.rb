@@ -211,4 +211,22 @@ RSpec.describe SQRL::Storage do
     expect(s.log_n).to eq(9)
     expect(SQRL::S4Identity.new.settings).to eq(s)
   end
+  describe "binary files whose last byte is whitespace" do
+    it "parses them without truncating the final block" do
+      type2 = SQRL::Storage::Type2Block.new(salt: SQRL::Util.random_bytes(16), log_n: 9, iterations: 1,
+                                            enc_iuk: SQRL::Util.random_bytes(32), tag: "#{"\x00" * 15}\n")
+      bytes = SQRL::Storage::HEADER_BINARY + type2.to_bytes
+      expect(bytes.byteslice(-1)).to eq("\n")
+      parsed = SQRL::S4Identity.parse(bytes)
+      expect(parsed.to_bytes).to eq(bytes)
+      expect(SQRL::S4Identity.parse("\r\n#{bytes}").to_bytes).to eq(bytes)
+    end
+
+    it "still tolerates whitespace around the SQRLDATA text form" do
+      type2 = SQRL::Storage::Type2Block.new(salt: SQRL::Util.random_bytes(16), log_n: 9, iterations: 1,
+                                            enc_iuk: SQRL::Util.random_bytes(32), tag: SQRL::Util.random_bytes(16))
+      text = SQRL::Storage::HEADER_TEXT + SQRL::Util.b64u_encode(type2.to_bytes)
+      expect(SQRL::S4Identity.parse("  #{text}\n\n").to_bytes).to eq(SQRL::Storage::HEADER_BINARY + type2.to_bytes)
+    end
+  end
 end

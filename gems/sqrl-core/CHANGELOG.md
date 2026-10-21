@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Fix: binary `sqrldata` files whose final byte happened to be an ASCII whitespace character
+  (one in about forty, since the last block ends with a random AES-GCM tag) lost that byte on
+  parse and failed with "block ... claims N bytes but only N-1 remain". Only leading
+  whitespace is skipped before the header now; the `SQRLDATA` text form is still trimmed.
+
 ## 0.1.1 — 2026-10-20
 
 - Fixed: Ed25519 and X25519 keys are built from their DER encodings when the openssl gem

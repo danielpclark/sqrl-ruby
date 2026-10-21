@@ -407,17 +407,20 @@ module SQRL
 
     # Parse either the binary (+sqrldata+) or the textual base64url (+SQRLDATA+) form.
     def self.parse(input)
-      trimmed = Storage.trim_ascii(input)
-      raise FormatError, "identity data too short" if trimmed.bytesize < 8
+      # Only leading whitespace is skipped before the header is read: the binary form ends
+      # with an AES-GCM tag whose last byte may itself be a whitespace character, so trimming
+      # the tail would truncate roughly one file in forty.
+      data = input.b.sub(/\A[ \t\r\n\f\v]+/, "")
+      raise FormatError, "identity data too short" if data.bytesize < 8
 
-      header = trimmed.byteslice(0, 8)
+      header = data.byteslice(0, 8)
       if header == HEADER_TEXT
-        text = trimmed.byteslice(8..)
+        text = Storage.trim_ascii(data.byteslice(8..))
         raise FormatError, "invalid SQRLDATA text" unless text.force_encoding("UTF-8").valid_encoding?
 
         return parse_blocks(Util.b64u_decode(text))
       end
-      return parse_blocks(trimmed.byteslice(8..)) if header == HEADER_BINARY
+      return parse_blocks(data.byteslice(8..)) if header == HEADER_BINARY
 
       raise FormatError, "missing sqrldata header"
     end
