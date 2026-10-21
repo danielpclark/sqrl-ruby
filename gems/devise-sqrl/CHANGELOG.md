@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 — 2026-10-21
+
+- No changes; released in lockstep with sqrl-core 0.1.2 (fixes binary S4 identity files whose last byte is whitespace being truncated on parse).
+
 ## 0.1.1 — 2026-10-20
 
 - No changes. Released with sqrl-core 0.1.1, which fixes the `NoMethodError` on Ruby 3.1

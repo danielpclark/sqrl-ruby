@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 — 2026-10-21
 
 - Fix: binary `sqrldata` files whose final byte happened to be an ASCII whitespace character
   (one in about forty, since the last block ends with a random AES-GCM tag) lost that byte on
