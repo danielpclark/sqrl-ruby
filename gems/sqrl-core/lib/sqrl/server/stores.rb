@@ -62,6 +62,12 @@ module SQRL
       def authenticated? = !authenticated_idk.nil?
       def asked? = asked ? true : false
 
+      # Whether the SQRL client completed this login in CPS mode (a one-time +url=+ token was
+      # issued). Such a login may only be completed by the browser that presents that token,
+      # never through the poll. The token field stays set until the token is claimed, so an
+      # unclaimed or expired token keeps the poll closed, as the specification requires.
+      def cps? = !cps_token.nil?
+
       def expired?(now)
         !expires_at.nil? && expires_at <= now
       end

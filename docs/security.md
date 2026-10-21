@@ -52,7 +52,10 @@ Completing a login requires one of two things:
 - **CPS (same device).** The server hands the client a one-time, 32-byte random token in
   `url=`; the client sends the browser there. The token is claimed exactly once, expires
   after `cps_token_ttl` (60 s), and must belong to the pending login in *that browser's*
-  session. A token stolen from one browser cannot log in another.
+  session. A token stolen from one browser cannot log in another. A login the client flagged
+  `cps` is *never* completed through the poll below: the specification says the server "MUST
+  NOT authenticate the browser session" in that case, because the page that showed the login
+  link may be a spoof. Only the browser the client redirects to the token gets in.
 - **Poll (other device).** The browser's script polls a cookie-bound status endpoint. The
   pending login completes once, from the browser that owns it. The protocol's own IP check
   applies (`require_ip_match`: a client whose IP differs from the browser's is refused

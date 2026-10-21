@@ -451,15 +451,26 @@ module SQRL
 
         # ---- robustness --------------------------------------------------------------------
 
+        # A stale nut must draw a transient error (0x20) with a fresh nut. What happens on the
+        # retry depends on the server (On The Wire v1.07, "Transient Error Details"): a server
+        # that can tie the stale nut back to its browser session lets the retry succeed; a
+        # server that keeps its state by reference answers with exactly the same error, which
+        # tells the client to have the user refresh the page. Both are conforming; anything else
+        # (a different error, or a "success" nobody's browser can complete) is not.
         def case_transient_recovery(ctx)
           id = identity
           browser = transport
           page = @site.login_page(browser)
           bogus = page.sqrl_url.sub(/nut=[^&]+/, "nut=conformance-stale")
-          result = agent(id, transport: browser, cps: false, poll: false).login(bogus)
-          ctx.transcript.concat(result.transcript)
-          check(result.tif_history.first.transient_error?, "the stale nut did not produce a transient error")
-          check(result.authenticated?, "login did not recover from the transient error")
+          begin
+            result = agent(id, transport: browser, cps: false, poll: false).login(bogus)
+            ctx.transcript.concat(result.transcript)
+            check(result.tif_history.first.transient_error?, "the stale nut did not produce a transient error")
+            check(result.authenticated?, "login did not recover from the transient error")
+          rescue LoginFailed => e
+            check(e.reason == :transient && e.tif&.transient_error?,
+                  "the stale nut did not produce a transient error (#{e.message})")
+          end
         end
 
         def case_concurrent_logins(ctx)

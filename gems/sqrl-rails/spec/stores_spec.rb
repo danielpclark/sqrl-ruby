@@ -132,7 +132,9 @@ RSpec.describe SQRL::Rails::Stores::ActiveRecord do
     expect(result).to be_created
     session.feed(result.body)
     expect(session.cps_url).to start_with("https://example.com/sqrl/callback?t=")
-    expect(handler.status(login.pending_login_id)[:authenticated]).to be(true)
+    # a CPS login is authenticated on the pending login but never reported to the browser poll
+    expect(stores.pending_logins.find(login.pending_login_id)).to be_authenticated.and be_cps
+    expect(handler.status(login.pending_login_id)[:authenticated]).to be(false)
     token = session.cps_url[/t=(.+)/, 1]
     expect(handler.claim_cps(token).id).to eq(login.pending_login_id)
     expect(handler.claim_cps(token)).to be_nil

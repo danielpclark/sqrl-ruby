@@ -88,6 +88,9 @@ module SQRL
     class Agent
       # Seconds between status polls for non-CPS logins.
       DEFAULT_POLL_INTERVAL = 0.5
+      # The message GRC's reference client shows when a login page has gone stale
+      # (Gibson, grc.sqrl:21887, 7 Feb 2019).
+      TRANSIENT_MESSAGE = "The SQRL login page has expired. Please refresh the page, then log in with SQRL."
 
       attr_reader :identity, :transport, :options, :alt_id, :logger
       attr_accessor :cps, :follow_cps, :unknown_site, :ask_handler, :max_transient_retries, :poll, :poll_interval,
@@ -209,11 +212,10 @@ module SQRL
           break unless session.state.transient?
 
           transient += 1
-          next unless transient > @max_transient_retries
+          next unless transient > @max_transient_retries || repeated_error?(ctx)
 
-          raise LoginFailed.new("the server kept answering with a transient error", reason: :transient,
-                                                                                    tif: session.last_response.tif,
-                                                                                    state: session.state)
+          raise LoginFailed.new(TRANSIENT_MESSAGE, reason: :transient, tif: session.last_response.tif,
+                                                   state: session.state)
         end
 
         finish(ctx, command)
@@ -237,10 +239,10 @@ module SQRL
           case state.kind
           when :transient
             transient += 1
-            next if transient <= @max_transient_retries
+            next if transient <= @max_transient_retries && !repeated_error?(ctx)
 
-            raise LoginFailed.new("the server kept answering with a transient error", reason: :transient,
-                                                                                      tif: session.last_response.tif, state: state)
+            raise LoginFailed.new(TRANSIENT_MESSAGE, reason: :transient, tif: session.last_response.tif,
+                                                     state: state)
           when :unknown
             next if session.has_previous? && session.try_next_previous
 
@@ -256,6 +258,13 @@ module SQRL
                                                                    state: state)
           end
         end
+      end
+
+      # "In the case that two successive TIF errors exactly match, the SQRL client MUST abort the
+      # transaction and ask the user to please refresh their login page" (Gibson, grc.sqrl:23543,
+      # 23 Nov 2019; On The Wire v1.07, "Transient Error Details").
+      def repeated_error?(ctx)
+        ctx.tifs.length >= 2 && ctx.tifs[-1] == ctx.tifs[-2]
       end
 
       def answer_ask(ctx)

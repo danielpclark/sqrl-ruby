@@ -99,9 +99,17 @@ RSpec.describe SQRL::Server do
     it "reports status for unknown, pending and authenticated logins" do
       expect(handler.status("nope")).to eq(authenticated: false, idk: nil)
       expect(handler.status(nil)).to eq(authenticated: false, idk: nil)
-      login, s, = login!(handler, id)
+      login, s, = login!(handler, id, cps: false)
       expect(handler.status(login.pending_login_id)).to eq(authenticated: true, idk: s.idk_b64)
       clock.now += 301
+      expect(handler.status(login.pending_login_id)).to eq(authenticated: false, idk: nil)
+    end
+
+    it "never reports a CPS login to the browser poll (the url= token is the only way in)" do
+      login, = login!(handler, id, cps: true)
+      pending = handler.stores.pending_logins.find(login.pending_login_id)
+      expect(pending).to be_authenticated
+      expect(pending).to be_cps
       expect(handler.status(login.pending_login_id)).to eq(authenticated: false, idk: nil)
     end
 
@@ -136,15 +144,15 @@ RSpec.describe SQRL::Server do
       s = SQRL::Session.new(id, login2.url, options: SQRL::ClientOptions.new(cps: true))
       exchange(handler, s, s.query)
       exchange(handler, s, s.ident)
-      expect(handler.status(login2.pending_login_id)[:authenticated]).to be(true)
-      # the suk only comes back in query replies, so a remove always follows a query
-      exchange(handler, s, s.query)
+      expect(handler.stores.pending_logins.find(login2.pending_login_id)).to be_authenticated
+      # the ident reply carried the suk (opt=suk), so the remove can follow it directly
+      expect(s.last_response.suk).not_to be_nil
       r = exchange(handler, s, s.remove(31.chr * 32))
       expect(r.tif).not_to be_error
       expect(r.cps_url).not_to be_nil
-      expect(handler.status(login2.pending_login_id)).to eq(authenticated: false, idk: nil)
+      expect(handler.stores.pending_logins.find(login2.pending_login_id)).not_to be_authenticated
       expect(handler.claim_cps(r.cps_url[/t=(.+)\z/, 1])).not_to be_authenticated
-      expect(handler.status(login.pending_login_id)[:authenticated]).to be(true)
+      expect(handler.stores.pending_logins.find(login.pending_login_id)).to be_authenticated
     end
 
     it "expires nuts" do
@@ -230,13 +238,20 @@ RSpec.describe SQRL::Server do
       expect(lines.join).not_to include(s.idk_b64)
     end
 
-    it "answers a transient error with a usable anonymous pending login" do
+    it "answers an unknown nut with a transient error whose retry fails identically" do
       r = handler.handle(nut: "unknown", body: "", ip: FlowHelpers::IP)
       expect(r.tif).to be_transient_error
-      expect(r.pending_login_id).not_to be_nil
-      expect(handler.stores.pending_logins.find(r.pending_login_id)).not_to be_nil
+      expect(r.tif.to_hex).to eq("60")
+      expect(r.pending_login_id).to be_nil
       expect(r.command).to be_nil
       expect(r.inspect).to include("tif=0x60")
+      # The reply carries a nut, as every reply must, but the browser session behind a stale
+      # nut cannot be recovered, so the retry gets exactly the same answer (the client's cue to
+      # ask its user to refresh the page) rather than a login nobody's browser can complete.
+      reply = SQRL::ServerResponse.parse(r.body)
+      retry_result = handler.handle(nut: reply.nut, body: "", ip: FlowHelpers::IP)
+      expect(retry_result.tif).to eq(r.tif)
+      expect(handler.stores.pending_logins.size).to eq(0)
     end
 
     it "serves the sin challenge in every response" do

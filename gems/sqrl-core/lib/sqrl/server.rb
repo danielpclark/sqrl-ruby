@@ -95,6 +95,10 @@ module SQRL
       def status(pending_login_id)
         login = pending_login_id && @stores.pending_logins.find(pending_login_id)
         return { authenticated: false, idk: nil } if login.nil? || login.expired?(@config.now)
+        # A login the client flagged cps is completed only through the url= token the client
+        # hands its own browser: "the web server ... MUST NOT authenticate the browser session
+        # upon successful authentication" (On The Wire v1.07 p.14; Operating Details p.4).
+        return { authenticated: false, idk: nil } if login.cps?
 
         { authenticated: login.authenticated?,
           idk: login.authenticated_idk && Util.b64u_encode(login.authenticated_idk) }
@@ -256,7 +260,11 @@ module SQRL
             return fail_with(Tif::COMMAND_FAILED)
           end
 
-          return fail_with(Tif::IDENTITY_SUPERSEDED | Tif::COMMAND_FAILED) if @stores.identities.superseded?(idk)
+          if @stores.identities.superseded?(idk)
+            # "the server must immediately fail that client query by returning a TIF of 0x240"
+            @tif = 0
+            return fail_with(Tif::IDENTITY_SUPERSEDED | Tif::COMMAND_FAILED)
+          end
 
           # --- which identity does the server know? ---
           current = @stores.identities.find(idk)
@@ -291,22 +299,24 @@ module SQRL
             ins_ok = @sin.nil? || previous.ins.nil? || Util.secure_compare(previous.ins, cget.call("pins").to_s)
             if suk_new && vuk_new && urs_ok.call(previous.vuk) && ins_ok
               current = @stores.identities.rekey(pidk, idk, suk: suk_new, vuk: vuk_new, ins: cget.call("ins"))
+              # The urs under the previous identity's VUK carries the same (rescue code) authority
+              # as an enable, so a disabled account comes back enabled under its new key, "so that
+              # the account can be immediately used under the new key" (Gibson, grc.sqrl:20273).
+              current = @stores.identities.update(idk, disabled: false) if current.disabled?
               @result.rekeyed_from = pidk
               @result.identity = current
-              matched = current
               id_match = true
+              # TIF bits describe the account AFTER the update: current-ID match on, previous-ID
+              # match off (On The Wire v1.07 p.16-17; Gibson, grc.sqrl:22934).
               @tif |= Tif::ID_MATCH
+              @tif &= ~(Tif::PREVIOUS_ID_MATCH | Tif::SQRL_DISABLED)
             else
               rekey_failed = true
             end
           end
 
-          suk_to_return = nil
           case cmd
           when Command::QUERY
-            if matched && (opts.suk? || matched.disabled? || prev_match)
-              suk_to_return = matched.suk
-            end
             # An ask is only valid in a query reply that recognises the current identity.
             if ask_pending && id_match
               @extra << ["ask", ask.to_wire]
@@ -340,16 +350,21 @@ module SQRL
             if rekey_failed || !id_match
               @tif |= Tif::COMMAND_FAILED
             else
-              current = @stores.identities.update(idk, disabled: true)
+              current = @stores.identities.update(idk, disabled: true, sqrlonly: opts.sqrlonly?,
+                                                       hardlock: opts.hardlock?)
               @result.identity = current
               @tif |= Tif::SQRL_DISABLED
+              # "url= must be provided by the server in its response to any command, other than
+              # query, when the SQRL client includes opt=cps" (On The Wire v1.07 p.14).
+              issue_cps_url if opts.cps?
             end
           when Command::ENABLE
             if rekey_failed || !id_match || ask_refused
               @tif |= Tif::COMMAND_FAILED
             elsif prev_match || urs_ok.call(current.vuk)
               # after a re-key the urs was already verified against the old vuk
-              current = @stores.identities.update(idk, disabled: false, logins: current.logins.to_i + 1)
+              current = @stores.identities.update(idk, disabled: false, logins: current.logins.to_i + 1,
+                                                       sqrlonly: opts.sqrlonly?, hardlock: opts.hardlock?)
               @tif &= ~Tif::SQRL_DISABLED
               authenticate!(current, cmd, opts)
             else
@@ -369,7 +384,14 @@ module SQRL
             end
           end
 
-          @extra << ["suk", Util.b64u_encode(suk_to_return)] if suk_to_return
+          # The stored SUK goes back whenever the client asked for it with opt=suk (a MUST:
+          # Gibson, grc.sqrl:12289, 9 Jan 2016) and whenever the client is likely to need it for
+          # a urs: the account is disabled, or it was recognised by a previous identity
+          # (On The Wire v1.07 p.14). It accompanies every command's reply, as GRC's server does.
+          identity_now = @result.identity
+          if identity_now && (opts.suk? || identity_now.disabled? || prev_match)
+            @extra << ["suk", Util.b64u_encode(identity_now.suk)]
+          end
           respond
         end
 
@@ -441,17 +463,19 @@ module SQRL
           @extra << ["url", url]
         end
 
-        # Unknown or reused nut: transient error, hand out a fresh nut bound to a new
-        # anonymous pending login so the client can retry.
+        # Unknown, expired or reused nut: transient error. This server keeps its state "by
+        # reference" (On The Wire, "Transient Error Details", second case), so the browser
+        # session behind a stale nut cannot be recovered. The reply carries a fresh nut, as every
+        # reply must, but that nut is deliberately not registered: the client's retry fails with
+        # the identical TIF, which is the client's cue to tell its user to refresh the login page
+        # (Gibson, grc.sqrl:23543, 23 Nov 2019; On The Wire v1.07 p.17).
         def transient_error
           @tif |= Tif::TRANSIENT_ERROR | Tif::COMMAND_FAILED
-          @login_id = @handler.new_id
-          @login = @stores.pending_logins.create(@login_id, ip: @ip, return_to: nil,
-                                                            expires_at: @now + @config.nut_ttl, created_at: @now)
-          @result.pending_login_id = @login_id
+          @login_id = nil
+          @login = nil
           @bound = nil
           @sin = @config.sin_for(context)
-          respond
+          respond(register_nut: false)
         end
 
         def fail_with(bits)
@@ -459,14 +483,16 @@ module SQRL
           respond
         end
 
-        def respond
+        def respond(register_nut: true)
           nut = @handler.new_nut
           text = "ver=#{Protocol::VERSION}\r\nnut=#{nut}\r\ntif=#{Tif.new(@tif).to_hex}\r\nqry=#{@config.path}?nut=#{nut}\r\n"
           text << "sin=#{@sin}\r\n" if @sin
           @extra.each { |k, v| text << "#{k}=#{v}\r\n" }
           body = Util.b64u_encode(text.b)
-          @stores.nuts.issue(nut: nut, pending_login_id: @login_id, expected_server: body,
-                             ip: @record ? @record.ip : @ip, bound_idk: @bound, expires_at: @now + @config.nut_ttl)
+          if register_nut
+            @stores.nuts.issue(nut: nut, pending_login_id: @login_id, expected_server: body,
+                               ip: @record ? @record.ip : @ip, bound_idk: @bound, expires_at: @now + @config.nut_ttl)
+          end
           @result.body = body
           @result.tif = Tif.new(@tif)
           @result.pending_login = @login

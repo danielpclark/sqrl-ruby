@@ -174,8 +174,14 @@ module SQRL
         Completion.new(identity: identity, pending_login: login, via: via)
       end
 
-      # Whether a pending login may be completed without a CPS token.
+      # Whether a pending login may be completed without a CPS token. Never when the SQRL
+      # client flagged +cps+: the server then "MUST NOT authenticate the browser session upon
+      # successful authentication" (On The Wire v1.07, +url=+); only the browser that presents
+      # the one-time token the client received may complete it. Otherwise a spoofed login
+      # page that keeps polling would be signed in, which is exactly what CPS exists to stop.
       def poll_completable?(login)
+        return false if login.cps?
+
         !@poll_requires_ip_match || login.ip_matched == true
       end
 
