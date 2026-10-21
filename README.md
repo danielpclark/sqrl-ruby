@@ -4,7 +4,6 @@
 
 <p align="center">
   <a href="https://github.com/danielpclark/sqrl-ruby/actions/workflows/ci.yml"><img src="https://github.com/danielpclark/sqrl-ruby/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
-  <a href="https://github.com/danielpclark/sqrl-ruby/actions/workflows/release.yml"><img src="https://github.com/danielpclark/sqrl-ruby/actions/workflows/release.yml/badge.svg" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/danielpclark/sqrl-ruby?color=blue" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/ruby-%E2%89%A5%203.1-CC342D?logo=ruby&logoColor=white" alt="Ruby 3.1 or newer">
   <img src="https://img.shields.io/maintenance/yes/2026" alt="Maintained">
@@ -90,7 +89,7 @@ bundle exec rake spec:gems          # every gem's specs
 bundle exec rake spec:integration   # boots each example app over HTTPS and drives it with the bot client and a headless browser
 bundle exec rspec spec/interop      # the conformance suite against the Rust reference server
 bundle exec rubocop                 # lint (enforced in CI)
-bundle exec rake build              # packages the six gems into pkg/; `rake release_check` lists them
+bundle exec rake build              # packages the six gems into pkg/
 ```
 
 Each application under [`examples/`](examples) is a complete, independently bundled
